@@ -4,23 +4,24 @@ progname=$(basename "$0")
 libdir=$(readlink -f "$0")
 prefix=
 number="[[:digit:]]+-"
-commit=
-ref=
+opt_commit=
+opt_ref=
 
 usage () {
-	echo "Usage: $progname [option] <dst \"patches.xxx\" dir>"
+	echo "Usage: $progname [options] <dst \"patches.xxx\" dir>"
 	echo ""
 	echo "Options:"
 	printf "\t-p, --prefix=<prefix>  Add a prefix to the patch file name.\n"
 	printf "\t-n, --number           Keep the number prefix in the patch file name.\n"
+	printf "\t-h, --help             Print this help\n"
+	echo "Options passed to clean_header.sh:"
 	printf "\t-c, --commit=<sha1>    Upstream commit id used to tag the patch file.\n"
 	printf "\t-r, --reference=<bnc>  bnc or fate number used to tag the patch file.\n"
-	printf "\t-h, --help             Print this help\n"
 	echo ""
 }
 
 
-TEMP=$(getopt -o p:nh --long prefix:,number,commit:,reference:,help -n "$progname" -- "$@")
+TEMP=$(getopt -o p:nc:r:h --long prefix:,number,commit:,reference:,help -n "$progname" -- "$@")
 
 if [ $? != 0 ]; then
 	echo "Error: getopt error" >&2
@@ -40,11 +41,11 @@ while true ; do
 					number=
 					;;
                 -c|commit)
-					commit=$2
+					opt_commit=$2
 					shift
 					;;
                 -r|reference)
-					ref=$2
+					opt_ref=$2
 					shift
 					;;
                 -h|--help)
@@ -82,31 +83,12 @@ if [ -n "$1" ]; then
 	exit 1
 fi
 
+# TODO: clean before renaming and roll back if cleaning does not work
+
 quilt push
 ./refresh_patch.sh
-#name=$(quilt top | sed -r "s/^patches\/$number/$prefix-/")
-#quilt rename "$patch_dir/$name"
+name=$(quilt top | sed -r "s/^patches\/$number/$prefix-/")
+quilt rename "$patch_dir/$name"
 
-header=$(quilt header | awk -f "$libdir/clean_from.awk" | awk -f "$libdir/clean_conflicts.awk")
-
-cherry=$(sed -n 's/(cherry picked from commit \([0-9a-f]+\))/\1/p' <<< "$header")
-
-if [ -n "$cherry" ]; then
-	header=$(awk -f "$libdir/clean_cherry.awk" <<< "$header")
-	if [ -z "$commit" ]; then
-		commit=$cherry
-	elif [ "$commit" != "$cherry" ]; then
-		echo "Commit ids from the patch file ($cherry) and the command line ($commit) differ. Using the one from the command line." > /dev/stderr
-	fi
-fi
-
-git-commit=$($libdir/patch-tag.py print git-commit <<< "$header")
-
-if [ -n "$commit" ]; then
-	echo "Upstream commit id unknown, you will have to edit the patch header manually" > /dev/stderr
-else
-	if [ -n "$LINUX_GIT" ]; then
-		echo "
-fi
-
+header=$(quilt header | "$libdir"/clean_header.sh -c "$opt_commit" -r "$opt_ref")
 quilt header -r <<< "$header"
