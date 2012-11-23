@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 progname=$(basename "$0")
-libdir=$(readlink -f "$0")
+libdir=$(dirname "$(readlink -f "$0")")
 prefix=
 number="[[:digit:]]+-"
 opt_commit=
@@ -19,6 +19,16 @@ usage () {
 	printf "\t-r, --reference=<bnc>  bnc or fate number used to tag the patch file.\n"
 	echo ""
 }
+
+tempfiles=
+clean_tempfiles () {
+	echo "$tempfiles" | while read -r file; do
+		if [ -n "$file" -a -f "$file" ]; then
+			rm "$file"
+		fi
+	done
+}
+trap 'clean_tempfiles' EXIT
 
 
 TEMP=$(getopt -o p:nc:r:h --long prefix:,number,commit:,reference:,help -n "$progname" -- "$@")
@@ -83,12 +93,27 @@ if [ -n "$1" ]; then
 	exit 1
 fi
 
-# TODO: clean before renaming and roll back if cleaning does not work
+if patch_file=$(quilt next); then
+	patch_orig=$(mktemp --tmpdir ksapply-patch.orig.XXXXXXXXXX)
+	tempfiles+=$patch_orig$'\n'
+	cat "$patch_file" > "$patch_orig"
+	if quilt push; then
+		:
+	else
+		exit $?
+	fi
 
-quilt push
-./refresh_patch.sh
-name=$(quilt top | sed -r "s/^patches\/$number/$prefix-/")
-quilt rename "$patch_dir/$name"
+	./refresh_patch.sh
+	header=$(mktemp --tmpdir ksapply-header.XXXXXXXXXX)
+	tempfiles+=$header$'\n'
+	quilt header > "$header"
+	if ! "$libdir"/clean_header.sh -c "$opt_commit" -r "$opt_ref" "$header"; then
+		quilt pop
+		cat "$patch_orig" > "$patch_file"
+		exit 1
+	fi
+	quilt header -r < "$header"
 
-header=$(quilt header | "$libdir"/clean_header.sh -c "$opt_commit" -r "$opt_ref")
-quilt header -r <<< "$header"
+	newname=$(quilt top | sed -r "s/^patches\/$number/$prefix-/")
+	quilt rename "$patch_dir/$newname"
+fi

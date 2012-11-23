@@ -1,12 +1,14 @@
 #!/bin/bash -e
 
 progname=$(basename "$0")
-libdir=$(readlink -f "$(dirname $0)")
+libdir=$(dirname "$(readlink -f "$0")")
 opt_commit=
 opt_ref=
+filename=
 edit=
 
 export GIT_DIR=$LINUX_GIT/.git
+: ${EDITOR:=${VISUAL:=vi}}
 
 . "$libdir"/patch_tag.sh
 
@@ -86,8 +88,11 @@ while true ; do
 done
 
 if [ -n "$1" ]; then
-	exec 0<"$1"
+	filename=$1
+	header=$(cat $1)
 	shift
+else
+	header=$(cat)
 fi
 
 if [ -n "$1" ]; then
@@ -99,7 +104,7 @@ fi
 # * Remove "From" line with tag, since it points to a local commit from
 #   kernel.git that I created
 # * Remove "Conflicts" section
-header=$(awk -f "$libdir"/patch_header.awk | awk -f "$libdir"/clean_from.awk | awk -f "$libdir"/clean_conflicts.awk)
+header=$(awk -f "$libdir"/patch_header.awk <<< "$header" | awk -f "$libdir"/clean_from.awk | awk -f "$libdir"/clean_conflicts.awk)
 
 # * Look for "cherry picked" info and replace it with the appropriate tags
 cherry=$(sed -nre 's/.*\(cherry picked from commit ([0-9a-f]+)\).*/\1/p' <<< "$header" | expand_git_ref)
@@ -181,6 +186,22 @@ if ! tag_get_attributions <<< "$header" | grep -q "$signature"; then
 	header=$(tag_add Acked-by "$signature" <<< "$header")
 fi
 
-# TODO: if edit: ...
+if [ -n "$edit" ]; then
+	if [ ! -t 0 ]; then
+		echo "Warning: input is not from a terminal, cannot edit header now." > /dev/stderr
+	else
+		tmpfile=
+		trap '[ -n "$tmpfile" -a -f "$tmpfile" ] && rm "$tmpfile"' EXIT
+		tmpfile=$(mktemp --tmpdir clean_header.XXXXXXXXXX)
+		cat > "$tmpfile" <<< "$header"
+		$EDITOR "$tmpfile"
+		header=$(cat "$tmpfile")
+		rm "$tmpfile"
+		trap - EXIT
+	fi
+fi
 
+if [ -n "$filename" ]; then
+	exec 1>"$filename"
+fi
 cat <<< "$header"
