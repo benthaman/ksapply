@@ -116,4 +116,6 @@ if patch_file=$(quilt next); then
 
 	newname=$(quilt top | sed -r "s/^patches\/$number/$prefix-/")
 	quilt rename "$patch_dir/$newname"
+else
+	exit $?
 fi

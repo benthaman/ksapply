@@ -127,7 +127,7 @@ header=$(tag_extract patch-mainline <<< "$header")
 
 if [ -z "$commit" ]; then
 	echo "Warning: Upstream commit id unknown, you will have to edit the patch header manually." > /dev/stderr
-	header=$(tag_add Git-commit "<fill me in>" <<< "$header")
+	header=$(tag_add Git-commit "(fill me in)" <<< "$header")
 	edit=1
 else
 	header=$(tag_add Git-commit "$commit" <<< "$header")
@@ -149,7 +149,7 @@ var_override origin "$git_describe" "git describe output"
 
 if [ -z "$origin" ]; then
 	echo "Warning: Mainline status unknown, you will have to edit the patch header manually." > /dev/stderr
-	header=$(tag_add Patch-mainline "<fill me in>" <<< "$header")
+	header=$(tag_add Patch-mainline "(fill me in)" <<< "$header")
 	edit=1
 else
 	header=$(tag_add Patch-mainline "$origin" <<< "$header")
@@ -165,7 +165,7 @@ var_override ref "$opt_ref" "command line reference"
 
 if [ -z "$ref" ]; then
 	echo "Warning: Reference information unknown, you will have to edit the patch header manually." > /dev/stderr
-	header=$(tag_add References "<fill me in>" <<< "$header")
+	header=$(tag_add References "(fill me in)" <<< "$header")
 	edit=1
 else
 	header=$(tag_add References "$ref" <<< "$header")
