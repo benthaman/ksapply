@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# count_keys <key>
-count_keys () {
-	key=$1
+# countkeys <key>
+countkeys () {
+	local key=$1
 	grep -i "^$key: " | wc -l
 }
 
 # tag_get <key>
 tag_get () {
-	key=$1
+	local key=$1
 
-	header=$(cat)
-	nb=$(count_keys "$key" <<< "$header")
+	local header=$(cat)
+	local nb=$(countkeys "$key" <<< "$header")
 	if [ $nb -gt 1 ]; then
 		echo "Error: key \"$key\" present more than once." > /dev/stderr
 		exit 1
@@ -28,10 +28,10 @@ tag_get () {
 
 # tag_extract <key>
 tag_extract () {
-	key=$1
+	local key=$1
 
-	header=$(cat)
-	nb=$(count_keys "$key" <<< "$header")
+	local header=$(cat)
+	local nb=$(countkeys "$key" <<< "$header")
 	if [ $nb -gt 1 ]; then
 		echo "Error: key \"$key\" present more than once." > /dev/stderr
 		exit 1
@@ -50,13 +50,13 @@ tag_extract () {
 
 # tag_add <key> <value>
 tag_add () {
-	key=$1
-	value=$2
+	local key=$1
+	local value=$2
 
 	case "${key,,*}" in
 	git-commit | patch-mainline | references)
-		header=$(cat)
-		nb=$(count_keys "$key" <<< "$header")
+		local header=$(cat)
+		local nb=$(countkeys "$key" <<< "$header")
 		if [ $nb -gt 0 ]; then
 			echo "Error: key \"$key\" already present." > /dev/stderr
 			exit 1

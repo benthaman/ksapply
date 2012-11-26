@@ -24,28 +24,31 @@ usage () {
 
 # var_override <var name> <value> <source name>
 var_override () {
-	_name=$1
-	_value=$2
-	_src=$3
-	if [ -n "$_value" ]; then
-		_name_src=${_name}_src
-		if [ -z "${!_name}" ]; then
-			eval "$_name=\"$_value\""
-			eval "$_name_src=\"$_src\""
-		elif [ "$_value" != "${!_name}" ]; then
-			echo "Warning: $_src (\"$_value\") and ${!_name_src} (\"${!_name}\") differ. Using $_src." > /dev/stderr
-			eval "$_name=\"$_value\""
-			eval "$_name_src=\"$_src\""
+	local name=$1
+	local value=$2
+	local src=$3
+
+	if [ -n "$value" ]; then
+		local name_src=${name}src
+		if [ -z "${!name}" ]; then
+			eval "$name=\"$value\""
+			eval "$name_src=\"$src\""
+		elif [ "$value" != "${!name}" ]; then
+			echo "Warning: $src (\"$value\") and ${!name_src} (\"${!name}\") differ. Using $src." > /dev/stderr
+			eval "$name=\"$value\""
+			eval "$name_src=\"$src\""
 		fi
 	fi
 }
 
 # expand_git_ref
 expand_git_ref () {
-	while read _commit; do
-		if [ -n "$_commit" ]; then
-			_hash=$(git log -n1 --pretty=format:%H "$_commit")
-			echo $_hash
+	local commit
+
+	while read commit; do
+		if [ -n "$commit" ]; then
+			local hash=$(git log -n1 --pretty=format:%H "$commit")
+			echo $hash
 		fi
 	done
 }

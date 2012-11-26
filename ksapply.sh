@@ -22,6 +22,8 @@ usage () {
 
 tempfiles=
 clean_tempfiles () {
+	local file
+
 	echo "$tempfiles" | while read -r file; do
 		if [ -n "$file" -a -f "$file" ]; then
 			rm "$file"
