@@ -24,28 +24,28 @@ usage () {
 
 # var_override <var name> <value> <source name>
 var_override () {
-	name=$1
-	value=$2
-	src=$3
-	if [ -n "$value" ]; then
-		name_src=${name}_src
-		if [ -z "${!name}" ]; then
-			eval "$name=\"$value\""
-			eval "$name_src=\"$src\""
-		elif [ "$value" != "${!name}" ]; then
-			echo "Warning: $src ($value) and ${!name_src} (${!name}) differ. Using $src." > /dev/stderr
-			eval "$name=\"$value\""
-			eval "$name_src=\"$src\""
+	_name=$1
+	_value=$2
+	_src=$3
+	if [ -n "$_value" ]; then
+		_name_src=${_name}_src
+		if [ -z "${!_name}" ]; then
+			eval "$_name=\"$_value\""
+			eval "$_name_src=\"$_src\""
+		elif [ "$_value" != "${!_name}" ]; then
+			echo "Warning: $_src (\"$_value\") and ${!_name_src} (\"${!_name}\") differ. Using $_src." > /dev/stderr
+			eval "$_name=\"$_value\""
+			eval "$_name_src=\"$_src\""
 		fi
 	fi
 }
 
 # expand_git_ref
 expand_git_ref () {
-	while read commit; do
-		if [ -n "$commit" ]; then
-			hash=$(git log -n1 --pretty=format:%H "$commit")
-			echo $hash
+	while read _commit; do
+		if [ -n "$_commit" ]; then
+			_hash=$(git log -n1 --pretty=format:%H "$_commit")
+			echo $_hash
 		fi
 	done
 }
@@ -89,10 +89,10 @@ done
 
 if [ -n "$1" ]; then
 	filename=$1
-	header=$(cat $1)
+	patch=$(cat $1; echo -n ---)
 	shift
 else
-	header=$(cat)
+	patch=$(cat; echo -n ---)
 fi
 
 if [ -n "$1" ]; then
@@ -101,36 +101,44 @@ if [ -n "$1" ]; then
 	exit 1
 fi
 
+body=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_body.awk; echo -n "---")
 # * Remove "From" line with tag, since it points to a local commit from
 #   kernel.git that I created
 # * Remove "Conflicts" section
-header=$(awk -f "$libdir"/patch_header.awk <<< "$header" | awk -f "$libdir"/clean_from.awk | awk -f "$libdir"/clean_conflicts.awk)
+header=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_header.awk | awk -f "$libdir"/clean_from.awk | awk -f "$libdir"/clean_conflicts.awk; echo -n "---")
 
 # * Look for "cherry picked" info and replace it with the appropriate tags
-cherry=$(sed -nre 's/.*\(cherry picked from commit ([0-9a-f]+)\).*/\1/p' <<< "$header" | expand_git_ref)
+cherry=$(echo -n "$header" | sed -nre 's/.*\(cherry picked from commit ([0-9a-f]+)\).*/\1/p' | expand_git_ref)
 if [ -n "$cherry" ]; then
-	header=$(awk -f "$libdir/clean_cherry.awk" <<< "$header")
+	header=$(echo -n "$header" | awk -f "$libdir/clean_cherry.awk")
 fi
 
-git_commit=$(tag_get git-commit <<< "$header" | expand_git_ref)
-header=$(tag_extract git-commit <<< "$header")
+git_commit=$(echo -n "$header" | tag_get git-commit | expand_git_ref)
+header=$(echo -n "$header" | tag_extract git-commit)
 
-opt_commit=$(expand_git_ref <<< "$opt_commit")
+opt_commit=$(echo -n "$opt_commit" | expand_git_ref)
 
 # command line > Git-commit > cherry
 var_override commit "$cherry" "cherry picked commit"
 var_override commit "$git_commit" "Git-commit"
 var_override commit "$opt_commit" "command line commit"
 
-patch_mainline=$(tag_get patch-mainline <<< "$header")
-header=$(tag_extract patch-mainline <<< "$header")
+patch_mainline=$(echo -n "$header" | tag_get patch-mainline)
+header=$(echo -n "$header" | tag_extract patch-mainline)
+
+if [ -z "$commit" -a -t 0 ]; then
+	echo "Upstream commit id unknown for patch \"$(echo -n "$header" | tag_get subject)\", enter it now?"
+	read -p "(<refspec>/empty cancels): " prompt_commit
+	prompt_commit=$(echo "$prompt_commit" | expand_git_ref)
+	var_override commit "$prompt_commit" "prompted commit"
+fi
 
 if [ -z "$commit" ]; then
 	echo "Warning: Upstream commit id unknown, you will have to edit the patch header manually." > /dev/stderr
-	header=$(tag_add Git-commit "(fill me in)" <<< "$header")
+	header=$(echo -n "$header" | tag_add Git-commit "(fill me in)")
 	edit=1
 else
-	header=$(tag_add Git-commit "$commit" <<< "$header")
+	header=$(echo -n "$header" | tag_add Git-commit "$commit")
 
 	if [ ! -d "$LINUX_GIT" ]; then
 		echo "Warning: kernel git tree not found at \"$LINUX_GIT\" (check the LINUX_GIT environment variable)" > /dev/stderr
@@ -149,15 +157,15 @@ var_override origin "$git_describe" "git describe output"
 
 if [ -z "$origin" ]; then
 	echo "Warning: Mainline status unknown, you will have to edit the patch header manually." > /dev/stderr
-	header=$(tag_add Patch-mainline "(fill me in)" <<< "$header")
+	header=$(echo -n "$header" | tag_add Patch-mainline "(fill me in)")
 	edit=1
 else
-	header=$(tag_add Patch-mainline "$origin" <<< "$header")
+	header=$(echo -n "$header" | tag_add Patch-mainline "$origin")
 fi
 
 # * Make sure "References" tag is there
-references=$(tag_get references <<< "$header")
-header=$(tag_extract references <<< "$header")
+references=$(echo -n "$header" | tag_get references)
+header=$(echo -n "$header" | tag_extract references)
 
 # command line > References
 var_override ref "$references" "References"
@@ -165,10 +173,10 @@ var_override ref "$opt_ref" "command line reference"
 
 if [ -z "$ref" ]; then
 	echo "Warning: Reference information unknown, you will have to edit the patch header manually." > /dev/stderr
-	header=$(tag_add References "(fill me in)" <<< "$header")
+	header=$(echo -n "$header" | tag_add References "(fill me in)")
 	edit=1
 else
-	header=$(tag_add References "$ref" <<< "$header")
+	header=$(echo -n "$header" | tag_add References "$ref")
 fi
 
 # * Add attribution tag
@@ -182,8 +190,8 @@ if [ -z "$name" -o -z "$email" ]; then
 	edit=1
 fi
 signature="$name <$email>"
-if ! tag_get_attributions <<< "$header" | grep -q "$signature"; then
-	header=$(tag_add Acked-by "$signature" <<< "$header")
+if ! echo -n "$header" | tag_get_attributions | grep -q "$signature"; then
+	header=$(echo -n "$header" | tag_add Acked-by "$signature")
 fi
 
 if [ -n "$edit" ]; then
@@ -193,9 +201,9 @@ if [ -n "$edit" ]; then
 		tmpfile=
 		trap '[ -n "$tmpfile" -a -f "$tmpfile" ] && rm "$tmpfile"' EXIT
 		tmpfile=$(mktemp --tmpdir clean_header.XXXXXXXXXX)
-		cat > "$tmpfile" <<< "$header"
+		echo -n "${header%---}" > "$tmpfile"
 		$EDITOR "$tmpfile"
-		header=$(cat "$tmpfile")
+		header=$(cat "$tmpfile"; echo -n "---")
 		rm "$tmpfile"
 		trap - EXIT
 	fi
@@ -204,4 +212,5 @@ fi
 if [ -n "$filename" ]; then
 	exec 1>"$filename"
 fi
-cat <<< "$header"
+echo -n "${header%---}"
+echo -n "${body%---}"
