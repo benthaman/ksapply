@@ -1,4 +1,4 @@
-#!/usr/bin/awk
+#!/usr/bin/awk -f
 
 /\(cherry picked from commit [0-9a-f]+\)/ {
 	sub("\\(cherry picked from commit [0-9a-f]+\\)", "")

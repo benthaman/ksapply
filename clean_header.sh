@@ -16,9 +16,9 @@ usage () {
 	echo "Usage: $progname [options] [patch file]"
 	echo ""
 	echo "Options:"
-	printf "\t-c, --commit=<sha1>    Upstream commit id used to tag the patch file.\n"
-	printf "\t-r, --reference=<bnc>  bnc or fate number used to tag the patch file.\n"
-	printf "\t-h, --help             Print this help\n"
+	printf "\t-c, --commit=<refspec>  Upstream commit id used to tag the patch file.\n"
+	printf "\t-r, --reference=<bnc>   bnc or fate number used to tag the patch file.\n"
+	printf "\t-h, --help              Print this help\n"
 	echo ""
 }
 

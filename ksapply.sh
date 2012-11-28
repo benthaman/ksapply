@@ -11,12 +11,12 @@ usage () {
 	echo "Usage: $progname [options] <dst \"patches.xxx\" dir>"
 	echo ""
 	echo "Options:"
-	printf "\t-p, --prefix=<prefix>  Add a prefix to the patch file name.\n"
-	printf "\t-n, --number           Keep the number prefix in the patch file name.\n"
-	printf "\t-h, --help             Print this help\n"
+	printf "\t-p, --prefix=<prefix>   Add a prefix to the patch file name.\n"
+	printf "\t-n, --number            Keep the number prefix in the patch file name.\n"
+	printf "\t-h, --help              Print this help\n"
 	echo "Options passed to clean_header.sh:"
-	printf "\t-c, --commit=<sha1>    Upstream commit id used to tag the patch file.\n"
-	printf "\t-r, --reference=<bnc>  bnc or fate number used to tag the patch file.\n"
+	printf "\t-c, --commit=<refspec>  Upstream commit id used to tag the patch file.\n"
+	printf "\t-r, --reference=<bnc>   bnc or fate number used to tag the patch file.\n"
 	echo ""
 }
 
@@ -46,7 +46,7 @@ eval set -- "$TEMP"
 while true ; do
         case "$1" in
                 -p|prefix)
-					prefix=$2
+					prefix="$2-"
 					shift
 					;;
                 -n|number)
@@ -116,7 +116,7 @@ if patch_file=$(quilt next); then
 	fi
 	quilt header -r < "$header"
 
-	newname=$(quilt top | sed -r "s/^patches\/$number/$prefix-/")
+	newname=$(quilt top | sed -r "s/^patches\/$number/$prefix/")
 	quilt rename "$patch_dir/$newname"
 else
 	exit $?
