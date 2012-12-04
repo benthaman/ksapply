@@ -46,7 +46,7 @@ eval set -- "$TEMP"
 while true ; do
         case "$1" in
                 -p|prefix)
-					prefix="$2-"
+					prefix="${2%-}-"
 					shift
 					;;
                 -n|number)
