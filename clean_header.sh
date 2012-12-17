@@ -111,15 +111,15 @@ body=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_body.awk; echo -n "---")
 header=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_header.awk | awk -f "$libdir"/clean_from.awk | awk -f "$libdir"/clean_conflicts.awk; echo -n "---")
 
 # * Look for "cherry picked" info and replace it with the appropriate tags
-cherry=$(echo -n "$header" | sed -nre 's/.*\(cherry picked from commit ([0-9a-f]+)\).*/\1/p' | expand_git_ref)
+cherry=$(echo "$header" | sed -nre 's/.*\(cherry picked from commit ([0-9a-f]+)\).*/\1/p' | expand_git_ref)
 if [ -n "$cherry" ]; then
 	header=$(echo -n "$header" | awk -f "$libdir/clean_cherry.awk")
 fi
 
-git_commit=$(echo -n "$header" | tag_get git-commit | expand_git_ref)
+git_commit=$(echo "$header" | tag_get git-commit | expand_git_ref)
 header=$(echo -n "$header" | tag_extract git-commit)
 
-opt_commit=$(echo -n "$opt_commit" | expand_git_ref)
+opt_commit=$(echo "$opt_commit" | expand_git_ref)
 
 # command line > Git-commit > cherry
 var_override commit "$cherry" "cherry picked commit"
