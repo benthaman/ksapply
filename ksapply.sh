@@ -45,18 +45,18 @@ eval set -- "$TEMP"
 
 while true ; do
         case "$1" in
-                -p|prefix)
+                -p|--prefix)
 					prefix="${2%-}-"
 					shift
 					;;
-                -n|number)
+                -n|--number)
 					number=
 					;;
-                -c|commit)
+                -c|--commit)
 					opt_commit=$2
 					shift
 					;;
-                -r|reference)
+                -r|--reference)
 					opt_ref=$2
 					shift
 					;;

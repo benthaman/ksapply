@@ -22,14 +22,43 @@ usage () {
 	echo ""
 }
 
-# var_override <var name> <value> <source name>
+# var_override [options] <var name> <value> <source name>
+# Options:
+#    -a, --allow-empty    Allow an empty "value" to override the value of "var"
 var_override () {
+	local temp=$(getopt -o a --long allow-empty -n "$progname:var_overrride()" -- "$@")
+	local opt_empty
+
+	if [ $? != 0 ]; then
+		echo "Error: getopt error" >&2
+		exit 1
+	fi
+
+	eval set -- "$temp"
+
+	while true ; do
+		case "$1" in
+			-a|--allow-empty)
+						opt_empty=1
+						;;
+			--)
+						shift
+						break
+						;;
+			*)
+						echo "Error: could not parse arguments" >&2
+						exit 1
+						;;
+		esac
+		shift
+	done
+
 	local name=$1
 	local value=$2
 	local src=$3
 
-	if [ -n "$value" ]; then
-		local name_src=${name}src
+	if [ -n "$value" -o "$opt_empty" ]; then
+		local name_src=_${name}src
 		if [ -z "${!name}" ]; then
 			eval "$name=\"$value\""
 			eval "$name_src=\"$src\""
@@ -47,6 +76,9 @@ expand_git_ref () {
 
 	while read commit; do
 		if [ -n "$commit" ]; then
+			# take the first word only, which will discard cruft
+			# like "(partial)"
+			commit=$(echo "$commit" | awk '{print $1}')
 			local hash=$(git log -n1 --pretty=format:%H "$commit")
 			echo $hash
 		fi
@@ -66,11 +98,11 @@ eval set -- "$TEMP"
 
 while true ; do
         case "$1" in
-                -c|commit)
+                -c|--commit)
 					opt_commit=$2
 					shift
 					;;
-                -r|reference)
+                -r|--reference)
 					opt_ref=$2
 					shift
 					;;
@@ -92,10 +124,10 @@ done
 
 if [ -n "$1" ]; then
 	filename=$1
-	patch=$(cat $1; echo -n ---)
+	patch=$(cat $1 && echo -n ---)
 	shift
 else
-	patch=$(cat; echo -n ---)
+	patch=$(cat && echo -n ---)
 fi
 
 if [ -n "$1" ]; then
@@ -104,13 +136,20 @@ if [ -n "$1" ]; then
 	exit 1
 fi
 
-body=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_body.awk; echo -n "---")
+if [ ! -d "$LINUX_GIT" ] || ! git log -n1 > /dev/null; then
+	echo "Warning: kernel git tree not found at \"$LINUX_GIT\" (check the LINUX_GIT environment variable)" > /dev/stderr
+	exit 1
+fi
+
+body=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_body.awk && echo -n "---")
 # * Remove "From" line with tag, since it points to a local commit from
 #   kernel.git that I created
 # * Remove "Conflicts" section
-header=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_header.awk | awk -f "$libdir"/clean_from.awk | awk -f "$libdir"/clean_conflicts.awk; echo -n "---")
+header=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_header.awk | awk -f "$libdir"/clean_from.awk | awk -f "$libdir"/clean_conflicts.awk && echo -n "---")
 
-# * Look for "cherry picked" info and replace it with the appropriate tags
+
+# Git-commit:
+
 cherry=$(echo "$header" | sed -nre 's/.*\(cherry picked from commit ([0-9a-f]+)\).*/\1/p' | expand_git_ref)
 if [ -n "$cherry" ]; then
 	header=$(echo -n "$header" | awk -f "$libdir/clean_cherry.awk")
@@ -126,9 +165,6 @@ var_override commit "$cherry" "cherry picked commit"
 var_override commit "$git_commit" "Git-commit"
 var_override commit "$opt_commit" "command line commit"
 
-patch_mainline=$(echo -n "$header" | tag_get patch-mainline)
-header=$(echo -n "$header" | tag_extract patch-mainline)
-
 if [ -z "$commit" -a -t 0 ]; then
 	echo "Upstream commit id unknown for patch \"$(echo -n "$header" | tag_get subject)\", enter it now?"
 	read -p "(<refspec>/empty cancels): " prompt_commit
@@ -141,22 +177,36 @@ if [ -z "$commit" ]; then
 	header=$(echo -n "$header" | tag_add Git-commit "(fill me in)")
 	edit=1
 else
-	header=$(echo -n "$header" | tag_add Git-commit "$commit")
-
-	if [ ! -d "$LINUX_GIT" ]; then
-		echo "Warning: kernel git tree not found at \"$LINUX_GIT\" (check the LINUX_GIT environment variable)" > /dev/stderr
-	else
-		git_describe=$(git describe --contains --match "v*" $commit)
-		if [ -z "$git_describe" ]; then
-			git_describe=$(git describe --contains $commit)
+	commit_str=$commit
+	if [ -n "$body" ]; then
+		cl_orig=$(git show --no-renames $commit | diffstat -lup1 | wc -l)
+		cl_patch=$(echo -n "${body%---}" | diffstat -lup1 | wc -l)
+		if [ $cl_orig -ne $cl_patch ]; then
+			commit_str+=" (partial)"
 		fi
-		git_describe=${git_describe%%[~^]*}
+	fi
+	header=$(echo -n "$header" | tag_add Git-commit "$commit_str")
+
+	git_describe=$(git describe --contains --match "v*" $commit 2>/dev/null || true)
+	git_describe=${git_describe%%[~^]*}
+	if [ -z "$git_describe" ]; then
+		git_describe="Queued in subsystem maintainer repository"
+		branch=$(git describe --contains --all $commit)
+		branch=${branch%%[~^]*}
+		remote=$(git config --get branch.$branch.remote)
+		describe_url=$(git config --get remote.$remote.url)
 	fi
 fi
 
+
+# Patch-mainline:
+
+patch_mainline=$(echo -n "$header" | tag_get patch-mainline)
+header=$(echo -n "$header" | tag_extract patch-mainline)
+
 # git describe > Patch-mainline
 var_override origin "$patch_mainline" "Patch-mainline"
-var_override origin "$git_describe" "git describe output"
+var_override origin "$git_describe" "git describe result"
 
 if [ -z "$origin" ]; then
 	echo "Warning: Mainline status unknown, you will have to edit the patch header manually." > /dev/stderr
@@ -166,7 +216,23 @@ else
 	header=$(echo -n "$header" | tag_add Patch-mainline "$origin")
 fi
 
-# * Make sure "References" tag is there
+
+# Git-repo:
+
+git_repo=$(echo -n "$header" | tag_get git-repo)
+header=$(echo -n "$header" | tag_extract git-repo)
+
+# git config > Git-repo
+var_override remote_url "$git_repo" "Git-repo"
+var_override --allow-empty remote_url "$describe_url" "git describe and remote configuration"
+
+if [ -n "$remote_url" ]; then
+	header=$(echo -n "$header" | tag_add Git-repo "$remote_url")
+fi
+
+
+# References:
+
 references=$(echo -n "$header" | tag_get references)
 header=$(echo -n "$header" | tag_extract references)
 
@@ -182,12 +248,16 @@ else
 	header=$(echo -n "$header" | tag_add References "$ref")
 fi
 
-# * Add attribution tag
+
+# Acked-by:
+
 name=$(git config --get user.name)
 email=$(git config --get user.email)
 
 if [ -z "$name" -o -z "$email" ]; then
-	echo "Warning: user signature incomplete ($name <$email>), you will have to edit the patch header manually. Check the LINUX_GIT environment variable and the git configuration." > /dev/stderr
+	name_str=${name:-(empty name)}
+	email_str=${email:-(empty email)}
+	echo "Warning: user signature incomplete ($name_str <$email_str>), you will have to edit the patch header manually. Check the LINUX_GIT environment variable and the git configuration." > /dev/stderr
 	name=${name:-Name}
 	email=${email:-user@example.com}
 	edit=1
@@ -206,7 +276,7 @@ if [ -n "$edit" ]; then
 		tmpfile=$(mktemp --tmpdir clean_header.XXXXXXXXXX)
 		echo -n "${header%---}" > "$tmpfile"
 		$EDITOR "$tmpfile"
-		header=$(cat "$tmpfile"; echo -n "---")
+		header=$(cat "$tmpfile" && echo -n "---")
 		rm "$tmpfile"
 		trap - EXIT
 	fi

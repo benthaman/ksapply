@@ -54,7 +54,7 @@ tag_add () {
 	local value=$2
 
 	case "${key,,*}" in
-	git-commit | patch-mainline | references)
+	patch-mainline | git-repo | git-commit | references)
 		local header=$(cat)
 		local nb=$(countkeys "$key" <<< "$header")
 		if [ $nb -gt 0 ]; then
@@ -65,6 +65,23 @@ tag_add () {
 		awk '
 			BEGIN {
 				added = 0
+				keys["Patch-mainline:"] = 1
+				keys["Git-repo:"] = 2
+				keys["Git-commit:"] = 3
+				keys["References:"] = 4
+			}
+
+			function keycmp(key1, key2,   tmp) {
+				return keys[key1] - keys[key2]
+			}
+			
+			$1 in keys && !added {
+				if (keycmp("'"$key"':", $1) < 0) {
+					print "'"$key"': '"$value"'"
+					print
+					added = 1
+					next
+				}
 			}
 
 			/^$/ && !added {
