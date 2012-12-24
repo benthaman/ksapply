@@ -96,7 +96,7 @@ if [ -n "$1" ]; then
 fi
 
 if patch_file=$(quilt next); then
-	patch_orig=$(mktemp --tmpdir ksapply-patch.orig.XXXXXXXXXX)
+	patch_orig=$(mktemp --tmpdir ksapply-patch_orig.XXXXXXXXXX)
 	tempfiles+=$patch_orig$'\n'
 	cat "$patch_file" > "$patch_orig"
 	if quilt push; then
@@ -106,15 +106,15 @@ if patch_file=$(quilt next); then
 	fi
 
 	./refresh_patch.sh
-	header=$(mktemp --tmpdir ksapply-header.XXXXXXXXXX)
-	tempfiles+=$header$'\n'
-	quilt header > "$header"
-	if ! "$libdir"/clean_header.sh -c "$opt_commit" -r "$opt_ref" "$header"; then
+	patch_new=$(mktemp --tmpdir ksapply-patch_new.XXXXXXXXXX)
+	tempfiles+=$patch_new$'\n'
+	cat "$patch_file" > "$patch_new"
+	if ! "$libdir"/clean_header.sh -c "$opt_commit" -r "$opt_ref" "$patch_new"; then
 		quilt pop
 		cat "$patch_orig" > "$patch_file"
 		exit 1
 	fi
-	quilt header -r < "$header"
+	cat "$patch_new" | awk -f "$libdir"/patch_header.awk | quilt header -r
 
 	newname=$(quilt top | sed -r "s/^patches\/$number/$prefix/")
 	quilt rename "$patch_dir/$newname"

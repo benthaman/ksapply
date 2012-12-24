@@ -10,7 +10,9 @@ edit=
 export GIT_DIR=$LINUX_GIT/.git
 : ${EDITOR:=${VISUAL:=vi}}
 
+. "$libdir"/patch_from.sh
 . "$libdir"/patch_tag.sh
+. "$libdir"/lib.sh
 
 usage () {
 	echo "Usage: $progname [options] [patch file]"
@@ -20,69 +22,6 @@ usage () {
 	printf "\t-r, --reference=<bnc>   bnc or fate number used to tag the patch file.\n"
 	printf "\t-h, --help              Print this help\n"
 	echo ""
-}
-
-# var_override [options] <var name> <value> <source name>
-# Options:
-#    -a, --allow-empty    Allow an empty "value" to override the value of "var"
-var_override () {
-	local temp=$(getopt -o a --long allow-empty -n "$progname:var_overrride()" -- "$@")
-	local opt_empty
-
-	if [ $? != 0 ]; then
-		echo "Error: getopt error" >&2
-		exit 1
-	fi
-
-	eval set -- "$temp"
-
-	while true ; do
-		case "$1" in
-			-a|--allow-empty)
-						opt_empty=1
-						;;
-			--)
-						shift
-						break
-						;;
-			*)
-						echo "Error: could not parse arguments" >&2
-						exit 1
-						;;
-		esac
-		shift
-	done
-
-	local name=$1
-	local value=$2
-	local src=$3
-
-	if [ -n "$value" -o "$opt_empty" ]; then
-		local name_src=_${name}src
-		if [ -z "${!name}" ]; then
-			eval "$name=\"$value\""
-			eval "$name_src=\"$src\""
-		elif [ "$value" != "${!name}" ]; then
-			echo "Warning: $src (\"$value\") and ${!name_src} (\"${!name}\") differ. Using $src." > /dev/stderr
-			eval "$name=\"$value\""
-			eval "$name_src=\"$src\""
-		fi
-	fi
-}
-
-# expand_git_ref
-expand_git_ref () {
-	local commit
-
-	while read commit; do
-		if [ -n "$commit" ]; then
-			# take the first word only, which will discard cruft
-			# like "(partial)"
-			commit=$(echo "$commit" | awk '{print $1}')
-			local hash=$(git log -n1 --pretty=format:%H "$commit")
-			echo $hash
-		fi
-	done
 }
 
 
@@ -122,6 +61,7 @@ while true ; do
 	shift
 done
 
+# bash strips trailing newlines in variables, protect them with "---"
 if [ -n "$1" ]; then
 	filename=$1
 	patch=$(cat $1 && echo -n ---)
@@ -145,7 +85,7 @@ body=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_body.awk && echo -n "---"
 # * Remove "From" line with tag, since it points to a local commit from
 #   kernel.git that I created
 # * Remove "Conflicts" section
-header=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_header.awk | awk -f "$libdir"/clean_from.awk | awk -f "$libdir"/clean_conflicts.awk && echo -n "---")
+header=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_header.awk | from_extract | awk -f "$libdir"/clean_conflicts.awk && echo -n "---")
 
 
 # Git-commit:
@@ -178,9 +118,10 @@ if [ -z "$commit" ]; then
 	edit=1
 else
 	commit_str=$commit
-	if [ -n "$body" ]; then
-		cl_orig=$(git show --no-renames $commit | diffstat -lup1 | wc -l)
-		cl_patch=$(echo -n "${body%---}" | diffstat -lup1 | wc -l)
+	if [ -n "${body%---}" ]; then
+		cl_orig=$(git show --no-renames $commit | diffstat -lp1 | wc -l)
+		echo -n "${body%---}" > /tmp/output
+		cl_patch=$(echo -n "${body%---}" | diffstat -lp1 | wc -l)
 		if [ $cl_orig -ne $cl_patch ]; then
 			commit_str+=" (partial)"
 		fi
@@ -205,15 +146,15 @@ patch_mainline=$(echo -n "$header" | tag_get patch-mainline)
 header=$(echo -n "$header" | tag_extract patch-mainline)
 
 # git describe > Patch-mainline
-var_override origin "$patch_mainline" "Patch-mainline"
-var_override origin "$git_describe" "git describe result"
+var_override ml_status "$patch_mainline" "Patch-mainline"
+var_override ml_status "$git_describe" "git describe result"
 
-if [ -z "$origin" ]; then
+if [ -z "$ml_status" ]; then
 	echo "Warning: Mainline status unknown, you will have to edit the patch header manually." > /dev/stderr
 	header=$(echo -n "$header" | tag_add Patch-mainline "(fill me in)")
 	edit=1
 else
-	header=$(echo -n "$header" | tag_add Patch-mainline "$origin")
+	header=$(echo -n "$header" | tag_add Patch-mainline "$ml_status")
 fi
 
 

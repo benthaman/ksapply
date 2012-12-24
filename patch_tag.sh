@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # countkeys <key>
 countkeys () {
 	local key=$1
@@ -103,7 +101,7 @@ tag_add () {
 				added = 0
 			}
 
-			$1 ~ /Signed-off-by:/ || $1 ~ /Acked-by:/ {
+			$1 ~ /Signed-off-by:/ {
 				attributions_seen = 1
 			}
 
