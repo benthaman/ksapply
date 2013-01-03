@@ -236,3 +236,56 @@ tag_get_attribution_names () {
 		}
 	'
 }
+
+# tag_get_attribution_block
+tag_get_attribution_block () {
+	awk '
+		BEGIN {
+			inattributions = 0
+		}
+
+		$1 ~ /Signed-off-by:/ || $1 ~ /Acked-by:/ || $1 ~ /Tested-by:/ || $1 ~ /Reported-by:/ || tolower($1) ~ /cc:/ {
+			inattributions = 1
+		}
+
+		inattributions && (/^$/ || /^---$/) {
+			inattributions = 0
+		}
+
+		inattributions {
+			print
+		}
+	'
+}
+
+# tag_replace_attribution_block <new content>
+tag_replace_attribution_block () {
+	local content=$1
+
+	awk --assign content="$content" '
+		BEGIN {
+			inattributions = 0
+			added = 0
+		}
+
+		$1 ~ /Signed-off-by:/ || $1 ~ /Acked-by:/ || $1 ~ /Tested-by:/ || $1 ~ /Reported-by:/ || tolower($1) ~ /cc:/ {
+			inattributions = 1
+		}
+
+		inattributions && (/^$/ || /^---$/) {
+			inattributions = 0
+			print content
+			added = 1
+		}
+
+		! inattributions {
+			print
+		}
+
+		END { 
+			if (!added) {
+				print content
+			}
+		}
+	'
+}

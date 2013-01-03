@@ -196,6 +196,37 @@ else
 fi
 
 
+if [ -n "$commit" ]; then
+
+	# Clean subject
+
+	patch_subject=$(echo -n "$header" | tag_get subject | remove_subject_annotation)
+	header=$(echo -n "$header" | tag_extract subject)
+	original_header=$(git format-patch --stdout -p $commit^..$commit | awk -f "$libdir"/patch_header.awk && echo -n ---)
+	original_subject=$(echo -n "$original_header" | tag_get subject | remove_subject_annotation)
+
+	# git format-patch > Subject
+	var_override subject "$patch_subject" "patch file subject"
+	var_override subject "$original_subject" "git format-patch subject"
+
+	header=$(echo -n "$header" | tag_add Subject "$subject")
+
+
+	# Clean attributions
+
+	patch_attributions=$(echo -n "$header" | tag_get_attribution_block)
+	original_attributions=$(echo -n "$original_header" | tag_get_attribution_block)
+	count=$(comm -23 <(echo "$original_attributions" | sort) <(echo "$patch_attributions" | sort) | wc -l)
+	if [ $count -gt 0 ]; then
+		echo "Warning: $count attribution lines missing from the patch file. Adding them." > /dev/stderr
+		new_block=$original_attributions$'\n'
+		new_block+=$patch_attributions
+		new_block=$(echo "$new_block" | uniq_nosort)
+		header=$(echo -n "$header" | tag_replace_attribution_block "$new_block")
+	fi
+fi
+
+
 # Acked-by:
 
 name=$(git config --get user.name)
@@ -212,22 +243,6 @@ fi
 signature="$name <$email>"
 if ! echo -n "$header" | tag_get_attribution_names | grep -q "$signature"; then
 	header=$(echo -n "${header%---}" | tag_add Acked-by "$signature" && echo -n ---)
-fi
-
-
-# Clean subject
-
-if [ -n "$commit" ]; then
-	patch_subject=$(echo -n "$header" | tag_get subject | remove_subject_annotation)
-	header=$(echo -n "$header" | tag_extract subject)
-	original_header=$(git format-patch --stdout -p $commit^..$commit | awk -f "$libdir"/patch_header.awk && echo -n ---)
-	original_subject=$(echo -n "$original_header" | tag_get subject | remove_subject_annotation)
-
-	# git format-patch > Subject
-	var_override subject "$patch_subject" "patch file subject"
-	var_override subject "$original_subject" "git format-patch subject"
-
-	header=$(echo -n "$header" | tag_add Subject "$subject")
 fi
 
 

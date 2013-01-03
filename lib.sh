@@ -97,3 +97,7 @@ expand_git_ref () {
 remove_subject_annotation () {
 	sed -re 's/\[.*\] +//'
 }
+
+uniq_nosort () {
+	awk '!a[$0]++'
+}
