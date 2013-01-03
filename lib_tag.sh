@@ -34,13 +34,41 @@ tag_get () {
 		exit 1
 	fi
 
-	awk '
-		tolower($1) ~ /'"${key,,*}"':/ {
-			split($0, array, FS, seps)
-			print substr($0, 1 + length(seps[0]) + length(array[1]) + length(seps[1]))
-			exit
-		}
-	' <<< "$header"
+	case "${key,,*}" in
+	subject)
+		awk '
+			BEGIN {
+				insubject = 0
+			}
+
+			tolower($1) ~ /subject:/ {
+				insubject = 1
+				split($0, array, FS, seps)
+				result = substr($0, 1 + length(seps[0]) + length(array[1]) + length(seps[1]))
+				next
+			}
+
+			insubject && /^ / {
+				result = result $0
+				next
+			}
+
+			insubject {
+				print result
+				exit
+			}
+		' <<< "$header"
+		;;
+	*)
+		awk '
+			tolower($1) ~ /'"${key,,*}"':/ {
+				split($0, array, FS, seps)
+				print substr($0, 1 + length(seps[0]) + length(array[1]) + length(seps[1]))
+				exit
+			}
+		' <<< "$header"
+		;;
+	esac
 }
 
 # tag_extract <key>
@@ -54,15 +82,45 @@ tag_extract () {
 		exit 1
 	fi
 
-	awk '
-		tolower($1) ~ /'"${key,,*}"':/ {
-			next
-		}
+	case "${key,,*}" in
+	subject)
+		awk '
+			BEGIN {
+				insubject = 0
+			}
 
-		{
-			print
-		}
-	' <<< "$header"
+			tolower($1) ~ /subject:/ {
+				insubject = 1
+				next
+			}
+
+			insubject && /^ / {
+				next
+			}
+
+			insubject {
+				insubject = 0
+				print
+				next
+			}
+
+			{
+				print
+			}
+		' <<< "$header"
+		;;
+	*)
+		awk '
+			tolower($1) ~ /'"${key,,*}"':/ {
+				next
+			}
+
+			{
+				print
+			}
+		' <<< "$header"
+		;;
+	esac
 }
 
 # tag_add <key> <value>

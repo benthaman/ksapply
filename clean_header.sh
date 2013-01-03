@@ -218,7 +218,6 @@ fi
 # Clean subject
 
 if [ -n "$commit" ]; then
-	# TODO: this will crap out on multiline subjects
 	patch_subject=$(echo -n "$header" | tag_get subject | remove_subject_annotation)
 	header=$(echo -n "$header" | tag_extract subject)
 	original_header=$(git format-patch --stdout -p $commit^..$commit | awk -f "$libdir"/patch_header.awk && echo -n ---)
