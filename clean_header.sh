@@ -10,8 +10,8 @@ edit=
 export GIT_DIR=$LINUX_GIT/.git
 : ${EDITOR:=${VISUAL:=vi}}
 
-. "$libdir"/patch_from.sh
-. "$libdir"/patch_tag.sh
+. "$libdir"/lib_from.sh
+. "$libdir"/lib_tag.sh
 . "$libdir"/lib.sh
 
 usage () {
