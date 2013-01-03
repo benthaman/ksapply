@@ -218,36 +218,19 @@ fi
 # Clean subject
 
 if [ -n "$commit" ]; then
-	patch_subject=$(echo -n "$header" | tag_get subject)
-	original_header=$(git format-patch --stdout -p $commit^..$commit | awk -f "$libdir"/patch_header.awk && echo -n ---)
-	original_subject=$(echo -n "$original_header" | tag_get subject)
-
 	# TODO: this will crap out on multiline subjects
-	if ! subjects_equal "$patch_subject" "$original_subject"; then
-		echo "Warning: git format-patch subject and patch subject differ, you will have to edit the patch header manually." > /dev/stderr
-		edit=1
+	patch_subject=$(echo -n "$header" | tag_get subject | remove_subject_annotation)
+	header=$(echo -n "$header" | tag_extract subject)
+	original_header=$(git format-patch --stdout -p $commit^..$commit | awk -f "$libdir"/patch_header.awk && echo -n ---)
+	original_subject=$(echo -n "$original_header" | tag_get subject | remove_subject_annotation)
 
-		pos=$(echo -n "$header" | tag_position subject)
-		header=$(echo -n "$header" | tag_extract subject)
-		blob=$(cat <<-EOR
-			<<<<<<< Patch file
-			Subject: $patch_subject
-			=======
-			Subject: $original_subject
-			>>>>>>> Commit
-		EOR
-		)
-		header=$(echo -n "$header" | awk --assign blob="$blob" '
-			NR == '$pos' {
-				print blob
-			}
+	# git format-patch > Subject
+	var_override subject "$patch_subject" "patch file subject"
+	var_override subject "$original_subject" "git format-patch subject"
 
-			{
-				print
-			}
-		')
-	fi
+	header=$(echo -n "$header" | tag_add Subject "$subject")
 fi
+
 
 if [ -n "$edit" ]; then
 	if [ ! -t 0 ]; then

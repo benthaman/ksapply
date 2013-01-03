@@ -113,6 +113,26 @@ tag_add () {
 			}
 		' <<< "$header"
 		;;
+	subject)
+		local header=$(cat)
+		local nb=$(countkeys "$key" <<< "$header")
+		if [ $nb -gt 0 ]; then
+			echo "Error: key \"$key\" already present." > /dev/stderr
+			exit 1
+		fi
+
+		awk --assign key="$key" --assign value="$value" '
+			/^Date: / {
+				print
+				print key ": " value
+				next
+			}
+
+			{
+				print
+			}
+		' <<< "$header"
+		;;
 	acked-by | signed-off-by)
 		awk '
 			BEGIN {
