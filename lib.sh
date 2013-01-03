@@ -93,3 +93,12 @@ expand_git_ref () {
 		fi
 	done
 }
+
+_remove_annotation () {
+	sed -re 's/\[.*\] +//'
+}
+
+# subjects_equal <subject 1> <subject 2>
+subjects_equal () {
+	[ "$(echo "$1" | _remove_annotation)" = "$(echo "$2" | _remove_annotation)" ]
+}

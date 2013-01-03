@@ -4,6 +4,25 @@ countkeys () {
 	grep -i "^$key: " | wc -l
 }
 
+# tag_position <key>
+tag_position () {
+	local key=$1
+
+	local header=$(cat)
+	local nb=$(countkeys "$key" <<< "$header")
+	if [ $nb -gt 1 ]; then
+		echo "Error: key \"$key\" present more than once." > /dev/stderr
+		exit 1
+	fi
+
+	awk '
+		tolower($1) ~ /'"${key,,*}"':/ {
+			print NR
+			exit
+		}
+	' <<< "$header"
+}
+
 # tag_get <key>
 tag_get () {
 	local key=$1
@@ -130,8 +149,8 @@ tag_add () {
 	esac
 }
 
-# tag_get_attributions
-tag_get_attributions () {
+# tag_get_attribution_names
+tag_get_attribution_names () {
 	awk '
 		$1 ~ /Signed-off-by:/ || $1 ~ /Acked-by:/ {
 			split($0, array, FS, seps)

@@ -210,8 +210,43 @@ if [ -z "$name" -o -z "$email" ]; then
 	edit=1
 fi
 signature="$name <$email>"
-if ! echo -n "$header" | tag_get_attributions | grep -q "$signature"; then
-	header=$(echo -n "$header" | tag_add Acked-by "$signature")
+if ! echo -n "$header" | tag_get_attribution_names | grep -q "$signature"; then
+	header=$(echo -n "${header%---}" | tag_add Acked-by "$signature" && echo -n ---)
+fi
+
+
+# Clean subject
+
+if [ -n "$commit" ]; then
+	patch_subject=$(echo -n "$header" | tag_get subject)
+	original_header=$(git format-patch --stdout -p $commit^..$commit | awk -f "$libdir"/patch_header.awk && echo -n ---)
+	original_subject=$(echo -n "$original_header" | tag_get subject)
+
+	# TODO: this will crap out on multiline subjects
+	if ! subjects_equal "$patch_subject" "$original_subject"; then
+		echo "Warning: git format-patch subject and patch subject differ, you will have to edit the patch header manually." > /dev/stderr
+		edit=1
+
+		pos=$(echo -n "$header" | tag_position subject)
+		header=$(echo -n "$header" | tag_extract subject)
+		blob=$(cat <<-EOR
+			<<<<<<< Patch file
+			Subject: $patch_subject
+			=======
+			Subject: $original_subject
+			>>>>>>> Commit
+		EOR
+		)
+		header=$(echo -n "$header" | awk --assign blob="$blob" '
+			NR == '$pos' {
+				print blob
+			}
+
+			{
+				print
+			}
+		')
+	fi
 fi
 
 if [ -n "$edit" ]; then
