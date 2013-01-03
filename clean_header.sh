@@ -145,6 +145,12 @@ fi
 patch_mainline=$(echo -n "$header" | tag_get patch-mainline)
 header=$(echo -n "$header" | tag_extract patch-mainline)
 
+# Sometimes the tag does not include -rcX, I prefer to have it
+# var_override can take care of it, but it will generate a warning
+if echo "x$git_describe" | grep -q "x$patch_mainline"; then
+	patch_mainline=$git_describe
+fi
+
 # git describe > Patch-mainline
 var_override ml_status "$patch_mainline" "Patch-mainline"
 var_override ml_status "$git_describe" "git describe result"
