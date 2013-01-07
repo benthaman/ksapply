@@ -109,11 +109,25 @@ var_override commit "$cherry" "cherry picked commit"
 var_override commit "$git_commit" "Git-commit"
 var_override commit "$opt_commit" "command line commit"
 
-if [ -z "$commit" -a -t 0 ]; then
-	echo "Upstream commit id unknown for patch \"$(echo -n "$header" | tag_get subject)\", enter it now?"
-	read -p "(<refspec>/empty cancels): " prompt_commit
-	prompt_commit=$(echo "$prompt_commit" | expand_git_ref)
-	var_override commit "$prompt_commit" "prompted commit"
+if [ -z "$commit" ]; then
+	patch_subject=$(echo -n "$header" | tag_get subject | remove_subject_annotation)
+	log_grep=$(git log --reverse --pretty="tformat:%h%x09%ai%x09%aN <%aE>%x09%s" -F --grep "$patch_subject" | grep -F "$patch_subject")
+	log_grep_nb=$(echo "$log_grep" | wc -l)
+	if [ -n "$log_grep" -a $log_grep_nb -eq 1 ]; then
+		log_grep_commit=$(echo "$log_grep" | awk '{print $1}' | expand_git_ref)
+		var_override commit "$log_grep_commit" "git log --grep commit"
+	elif [ -t 0 ]; then
+		echo -n "Upstream commit id unknown for patch \"$patch_subject\", "
+		if [ -z "$log_grep" ]; then
+			echo "enter it now?"
+		else
+			echo "$log_grep_nb potential commits found in git log. Which one to use?"
+			echo "$log_grep" | awk -F$'\t' '{print $1 "   " $2 "   " $3}'
+		fi
+		read -p "(<refspec>/empty cancels): " prompt_commit
+		prompt_commit=$(echo "$prompt_commit" | expand_git_ref)
+		var_override commit "$prompt_commit" "prompted commit"
+	fi
 fi
 
 if [ -z "$commit" ]; then
