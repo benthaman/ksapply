@@ -81,6 +81,10 @@ if [ ! -d "$LINUX_GIT" ] || ! git log -n1 > /dev/null; then
 	exit 1
 fi
 
+if echo -n "${patch%---}" | grep -q $'\r'; then
+	patch=$(echo -n "${patch%---}" | sed -e 's/\r//g' && echo -n "---")
+fi
+
 body=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_body.awk && echo -n "---")
 # * Remove "From" line with tag, since it points to a local commit from
 #   kernel.git that I created
