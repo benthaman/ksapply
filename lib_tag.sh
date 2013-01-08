@@ -223,8 +223,16 @@ tag_add () {
 			}
 		' <<< "$header"
 		;;
-	acked-by | signed-off-by)
-		awk '
+	acked-by | signed-off-by | "cherry picked from commit")
+		local line
+
+		if [ "${key,,*}" = "cherry picked from commit" ]; then
+			line="(cherry picked from commit $value)"
+		else
+			line="$key: $value"
+		fi
+
+		awk --assign line="$line" '
 			BEGIN {
 				attributions_seen = 0
 				added = 0
@@ -235,7 +243,7 @@ tag_add () {
 			}
 
 			attributions_seen && !added && (/^$/ || /^---$/) {
-				print "'"$key"': '"$value"'"
+				print line
 				print
 				added = 1
 				next
