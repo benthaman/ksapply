@@ -137,9 +137,8 @@ if [ -z "$commit" ]; then
 else
 	commit_str=$commit
 	if [ -n "${body%---}" ]; then
-		cl_orig=$(git show --no-renames $commit | diffstat -lp1 | wc -l)
-		echo -n "${body%---}" > /tmp/output
-		cl_patch=$(echo -n "${body%---}" | diffstat -lp1 | wc -l)
+		cl_orig=$(git format-patch --stdout -p $commit^..$commit | cheat_diffstat | diffstat -lp1 | wc -l)
+		cl_patch=$(echo -n "${body%---}" | cheat_diffstat | diffstat -lp1 | wc -l)
 		if [ $cl_orig -ne $cl_patch ]; then
 			commit_str+=" (partial)"
 		fi

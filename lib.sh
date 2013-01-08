@@ -100,10 +100,54 @@ expand_git_ref () {
 	done
 }
 
+# remove_subject_annotation
 remove_subject_annotation () {
 	sed -re 's/\[.*\] +//'
 }
 
+# uniq_nosort
 uniq_nosort () {
 	awk '!a[$0]++'
+}
+
+# cheat_diffstat
+# Adds fake content to a patch body so that diffstat will show something for
+# renames
+cheat_diffstat () {
+	awk '
+		BEGIN {
+			state = 0
+			percent = "unknown%"
+		}
+
+		state == 4 {
+			print "@@ -1 +1 @@"
+			print "-" percent " of the content"
+			print "+" percent " of the content"
+
+			percent = "unknown%"
+			state = 0
+		}
+
+		state == 3 && /^rename to/ {
+			state = 4
+		}
+
+		state == 2 && /^rename from/ {
+			state = 3
+		}
+
+		state == 1 && /^similarity index/ {
+			state = 2
+			percent = $3
+		}
+
+		state == 0 && /^diff --git/ {
+			state = 1
+		}
+
+		{
+			print
+		}
+	'
 }
