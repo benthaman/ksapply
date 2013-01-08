@@ -111,7 +111,7 @@ var_override commit "$opt_commit" "command line commit"
 
 if [ -z "$commit" ]; then
 	patch_subject=$(echo -n "$header" | tag_get subject | remove_subject_annotation)
-	log_grep=$(git log --reverse --pretty="tformat:%h%x09%ai%x09%aN <%aE>%x09%s" -F --grep "$patch_subject" | grep -F "$patch_subject")
+	log_grep=$(git log --reverse --pretty="tformat:%h%x09%ai%x09%aN <%aE>%x09%s" -F --grep "$patch_subject" | grep -F "$patch_subject" || true)
 	log_grep_nb=$(echo "$log_grep" | wc -l)
 	if [ -n "$log_grep" -a $log_grep_nb -eq 1 ]; then
 		log_grep_commit=$(echo "$log_grep" | awk '{print $1}' | expand_git_ref)
