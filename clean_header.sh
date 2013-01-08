@@ -215,19 +215,50 @@ fi
 
 
 if [ -n "$commit" ]; then
+	original_header=$(git format-patch --stdout -p $commit^..$commit | awk -f "$libdir"/patch_header.awk && echo -n ---)
 
-	# Clean subject
+
+	# Clean From:
+
+	patch_from=$(echo -n "$header" | tag_get from)
+	header=$(echo -n "$header" | tag_extract from)
+	original_from=$(echo -n "$original_header" | tag_get from)
+
+	# git format-patch > From
+	var_override from "$patch_from" "patch file From:"
+	var_override from "$original_from" "git format-patch From:"
+
+	header=$(echo -n "$header" | tag_add From "$from")
+
+
+	# Clean Date:
+
+	patch_date=$(echo -n "$header" | tag_get date)
+	header=$(echo -n "$header" | tag_extract date)
+	original_date=$(echo -n "$original_header" | tag_get date)
+
+	# git format-patch > date
+	var_override date "$patch_date" "patch file Date:"
+	var_override date "$original_date" "git format-patch Date:"
+
+	header=$(echo -n "$header" | tag_add Date "$date")
+
+
+	# Clean Subject:
 
 	patch_subject=$(echo -n "$header" | tag_get subject | remove_subject_annotation)
-	header=$(echo -n "$header" | tag_extract subject)
-	original_header=$(git format-patch --stdout -p $commit^..$commit | awk -f "$libdir"/patch_header.awk && echo -n ---)
 	original_subject=$(echo -n "$original_header" | tag_get subject | remove_subject_annotation)
 
 	# git format-patch > Subject
-	var_override subject "$patch_subject" "patch file subject"
-	var_override subject "$original_subject" "git format-patch subject"
+	var_override subject "$patch_subject" "patch file Subject:"
+	var_override subject "$original_subject" "git format-patch Subject:"
 
-	header=$(echo -n "$header" | tag_add Subject "$subject")
+	if [ "$original_subject" != "$patch_subject" ]; then
+		header=$(echo -n "$header" | tag_extract subject)
+		header=$(echo -n "$header" | tag_add Subject "$subject")
+	fi
+	# else ... keep the changes lower between the original patch file and
+	# the cleaned one
 
 
 	# Clean attributions

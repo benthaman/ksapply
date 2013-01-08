@@ -129,6 +129,58 @@ tag_add () {
 	local value=$2
 
 	case "${key,,*}" in
+	from)
+		local header=$(cat)
+		local nb=$(countkeys "$key" <<< "$header")
+		if [ $nb -gt 0 ]; then
+			echo "Error: key \"$key\" already present." > /dev/stderr
+			exit 1
+		fi
+
+		awk --assign key="$key" --assign value="$value" '
+			BEGIN {
+				inserted = 0
+			}
+
+			NR==1 && /^From [0-9a-f]+/ {
+				print
+				next
+			}
+
+			!inserted {
+				print key ": " value
+				print
+				inserted = 1
+				next
+			}
+
+			{
+				print
+			}
+		' <<< "$header"
+		;;
+	date | subject)
+		local header=$(cat)
+		local nb=$(countkeys "$key" <<< "$header")
+		if [ $nb -gt 0 ]; then
+			echo "Error: key \"$key\" already present." > /dev/stderr
+			exit 1
+		fi
+
+		local -A prevkey=(["date"]="from:" ["subject"]="date:")
+
+		awk --assign key="$key" --assign value="$value" '
+			tolower($1) ~ /'"${prevkey[${key,,*}]}"'/ {
+				print
+				print key ": " value
+				next
+			}
+
+			{
+				print
+			}
+		' <<< "$header"
+		;;
 	patch-mainline | git-repo | git-commit | references)
 		local header=$(cat)
 		local nb=$(countkeys "$key" <<< "$header")
@@ -163,26 +215,6 @@ tag_add () {
 				print "'"$key"': '"$value"'"
 				print
 				added = 1
-				next
-			}
-
-			{
-				print
-			}
-		' <<< "$header"
-		;;
-	subject)
-		local header=$(cat)
-		local nb=$(countkeys "$key" <<< "$header")
-		if [ $nb -gt 0 ]; then
-			echo "Error: key \"$key\" already present." > /dev/stderr
-			exit 1
-		fi
-
-		awk --assign key="$key" --assign value="$value" '
-			/^Date: / {
-				print
-				print key ": " value
 				next
 			}
 
