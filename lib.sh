@@ -1,3 +1,7 @@
+bash_single_esc () {
+	sed "s/'/'\\\\''/g"
+}
+
 # var_override [options] <var name> <value> <source name>
 # Options:
 #    -a, --allow-empty    Allow an empty "value" to override the value of "var"
@@ -31,17 +35,19 @@ var_override () {
 
 	local name=$1
 	local value=$2
+	local value_esc=$(echo "$value" | bash_single_esc)
 	local src=$3
+	local src_esc=$(echo "$src" | bash_single_esc)
 
 	if [ -n "$value" -o "$opt_empty" ]; then
 		local name_src=_${name}src
 		if [ -z "${!name}" ]; then
-			eval "$name=\"$value\""
-			eval "$name_src=\"$src\""
+			eval "$name='$value_esc'"
+			eval "$name_src='$src_esc'"
 		elif [ "$value" != "${!name}" ]; then
 			echo "Warning: $src (\"$value\") and ${!name_src} (\"${!name}\") differ. Using $src." > /dev/stderr
-			eval "$name=\"$value\""
-			eval "$name_src=\"$src\""
+			eval "$name='$value_esc'"
+			eval "$name_src='$src_esc'"
 		fi
 	fi
 }
