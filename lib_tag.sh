@@ -1,7 +1,15 @@
 # countkeys <key>
 countkeys () {
 	local key=$1
-	grep -i "^$key: " | wc -l
+
+	case "${key,,*}" in
+	"cherry picked from commit")
+		grep -iF "(cherry picked from commit " | wc -l
+		;;
+	*)
+		grep -i "^$key: " | wc -l
+		;;
+	esac
 }
 
 # tag_position <key>
@@ -227,6 +235,12 @@ tag_add () {
 		local line
 
 		if [ "${key,,*}" = "cherry picked from commit" ]; then
+			local nb=$(countkeys "$key" <<< "$header")
+			if [ $nb -gt 0 ]; then
+				echo "Error: key \"$key\" already present." > /dev/stderr
+				exit 1
+			fi
+
 			line="(cherry picked from commit $value)"
 		else
 			line="$key: $value"
