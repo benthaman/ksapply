@@ -149,9 +149,13 @@ else
 	git_describe=${git_describe%%[~^]*}
 	if [ -z "$git_describe" ]; then
 		git_describe="Queued in subsystem maintainer repository"
-		branch=$(git describe --contains --all $commit)
-		branch=${branch%%[~^]*}
-		remote=$(git config --get branch.$branch.remote)
+		result=$(git describe --contains --all $commit)
+		if echo "$result" | grep -Eq "^remotes/"; then
+			remote=$(echo "$result" | cut -d/ -f2)
+		else
+			branch=${result%%[~^]*}
+			remote=$(git config --get branch.$branch.remote)
+		fi
 		describe_url=$(git config --get remote.$remote.url)
 	fi
 fi
