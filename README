@@ -1,0 +1,59 @@
+armor_origin.sh
+	Transform a "Git-commit" tag into a "(cherry picked from ...)" line.
+	Useful before importing patches into kernel.git.
+clean_header.sh
+	Filter a patch file such that it is properly formatted per SUSE rules.
+	Useful before importing patches.
+ksapply.sh
+	Apply the next patch in the quilt queue while cleaning and renaming it.
+	Useful when importing patches into kernel-source.git.
+rename_patch.sh
+	Move a patch file such that its new name is similar to what git
+	format-patch would have picked.
+	Useful when importing patches from a maildir.
+
++ Example workflow
+++ Clean the patch set
+When the patches come from vendors and have uncertain content: run a first
+pass of clean_patch.sh.
+
+patches$ for file in *; do echo $file; clean_header.sh -r "bnc#790588 FATE#313912" $file; done
+
+Although not mandatory, this step gives an idea of what condition the patch
+set is in to begin with. If this step succeeds, we will be able to have nice
+tags at the end.
+
+++ Import the patch set into kernel.git
+Import the patch set into kernel.git to make sure that it applies, compiles
+and works. The custom SUSE tags (Patch-mainline, ...) will be lost in the
+process. Before doing `git am`, run armor_origin.sh which transforms the
+"Git-commit" tag into a "(cherry picked from ...)" line.
+
+patches$ for file in *; do echo $file; armor_origin.sh $file; done
+kernel$ git am /tmp/patches/cleaned/*
+
+Use `git rebase -i` to add missing commits where they belong or generally fixup
+what needs to be.
+
+++ Import the patch set into kernel-source.git
+kernel$ git format-patch -o /tmp/patches/sp3 origin/SLE11-SP3..
+
+Check series.conf to find where the patch set will go and note the last patch
+before that (ex: "8be14ae drivers/net: fix up function prototypes after __dev*
+removals (bnc#795304 FATE#313649).") and the next patch after that (ex:
+"patches.drivers/iwlwifi-sp1-compatible-options").
+
+kernel-source$ ./scripts/sequence-patch.sh patches.drivers/IB-0004-mlx4-Configure-extended-active-speeds.patch
+kernel-source$ cd tmp/current
+kernel-source/tmp/current$ quilt import /tmp/patches/sp3/*
+kernel-source/tmp/current$ while ! ( quilt next | grep -q iwlwifi-sp1-compatible-options) && ksapply.sh
+-r "bnc#790588 FATE#313912" -p tg3 -n patches.drivers/; do true;
+kernel-source/tmp/current$ cd ../../
+kernel-source$ git st
+[...]
+
+Add the patches to series.conf. If some patches depend on patches that change
+core networking components, move them from patches.drivers to patches.fixes.
+
+kernel-source$ git add -A
+kernel-source$ scripts/log
