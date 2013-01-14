@@ -56,7 +56,8 @@ tag_get () {
 				next
 			}
 
-			insubject && /^ / {
+			insubject && /^[ \t]/ {
+				sub("[ \t]", " ")
 				result = result $0
 				next
 			}
