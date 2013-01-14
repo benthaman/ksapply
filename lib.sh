@@ -105,6 +105,21 @@ remove_subject_annotation () {
 	sed -re 's/\[.*\] +//'
 }
 
+# get_patch_num
+get_patch_num () {
+	sed -re 's/.*\[.*\b([0-9]+)\/[0-9]+\].*/\1/'
+}
+
+# format_sanitized_subject
+format_sanitized_subject () {
+	sed -re '
+		s/\.+/./g
+		s/[^a-zA-Z0-9._]+/-/g
+		s/[-.]+$//
+		s/(.{,64}).*/\1/
+	'
+}
+
 # uniq_nosort
 uniq_nosort () {
 	awk '!a[$0]++'
