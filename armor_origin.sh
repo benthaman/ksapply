@@ -62,7 +62,9 @@ body=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_body.awk && echo -n "---"
 header=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_header.awk && echo -n "---")
 
 git_commit=$(echo "$header" | tag_get git-commit | awk '{print $1}')
-header=$(echo -n "$header" | tag_add "cherry picked from commit" "$git_commit")
+if [ "$git_commit" ]; then
+	header=$(echo -n "$header" | tag_add "cherry picked from commit" "$git_commit")
+fi
 
 if [ -n "$filename" ]; then
 	exec 1>"$filename"
