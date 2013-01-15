@@ -102,7 +102,7 @@ expand_git_ref () {
 
 # remove_subject_annotation
 remove_subject_annotation () {
-	sed -re 's/\[.*\] +//'
+	sed -re 's/^( *\[[^]]*\] *)+//'
 }
 
 # get_patch_num
