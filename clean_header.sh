@@ -199,6 +199,11 @@ if [ -n "$remote_url" ]; then
 fi
 
 
+# Patch-filtered:
+# may be added by the exportpatch tool
+header=$(echo -n "$header" | tag_extract patch-filtered)
+
+
 # References:
 
 references=$(echo -n "$header" | tag_get --last references)
