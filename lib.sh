@@ -107,7 +107,7 @@ remove_subject_annotation () {
 
 # get_patch_num
 get_patch_num () {
-	sed -re 's/.*\[.*\b([0-9]+)\/[0-9]+\].*/\1/'
+	sed -nre 's/.*\[.*\b0*([0-9]+)\/[0-9]+\].*/\1/p'
 }
 
 # format_sanitized_subject
