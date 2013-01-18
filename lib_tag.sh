@@ -31,25 +31,59 @@ tag_position () {
 	' <<< "$header"
 }
 
-# tag_get <key>
+# tag_get [options] <key>
+# Options:
+#    -l, --last           Do not error out if a tag is present more than once,
+#                         return the last occurance
 tag_get () {
+	local temp=$(getopt -o l --long last -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
+	local opt_last
+
+	if [ $? != 0 ]; then
+		echo "Error: getopt error" >&2
+		exit 1
+	fi
+
+	eval set -- "$temp"
+
+	while true ; do
+		case "$1" in
+			-l|--last)
+						opt_last=1
+						;;
+			--)
+						shift
+						break
+						;;
+			*)
+						echo "Error: could not parse arguments" >&2
+						exit 1
+						;;
+		esac
+		shift
+	done
+
 	local key=$1
 
 	local header=$(cat)
 	local nb=$(countkeys "$key" <<< "$header")
-	if [ $nb -gt 1 ]; then
+	if [ $nb -gt 1 -a -z "$opt_last" ]; then
 		echo "Error: key \"$key\" present more than once." > /dev/stderr
 		exit 1
 	fi
 
 	case "${key,,*}" in
 	subject)
-		awk '
+		awk --assign nb="$nb" '
 			BEGIN {
 				insubject = 0
 			}
 
 			tolower($1) ~ /subject:/ {
+				nb--
+				if (nb > 0) {
+					next
+				}
 				insubject = 1
 				split($0, array, FS, seps)
 				result = substr($0, 1 + length(seps[0]) + length(array[1]) + length(seps[1]))
@@ -69,8 +103,12 @@ tag_get () {
 		' <<< "$header"
 		;;
 	*)
-		awk '
+		awk --assign nb="$nb" '
 			tolower($1) ~ /'"${key,,*}"':/ {
+				nb--
+				if (nb > 0) {
+					next
+				}
 				split($0, array, FS, seps)
 				print substr($0, 1 + length(seps[0]) + length(array[1]) + length(seps[1]))
 				exit
@@ -80,27 +118,60 @@ tag_get () {
 	esac
 }
 
-# tag_extract <key>
+# tag_extract [options] <key>
+# Options:
+#    -l, --last           Do not error out if a tag is present more than once,
+#                         extract the last occurance
 tag_extract () {
+	local temp=$(getopt -o l --long last -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
+	local opt_last
+
+	if [ $? != 0 ]; then
+		echo "Error: getopt error" >&2
+		exit 1
+	fi
+
+	eval set -- "$temp"
+
+	while true ; do
+		case "$1" in
+			-l|--last)
+						opt_last=1
+						;;
+			--)
+						shift
+						break
+						;;
+			*)
+						echo "Error: could not parse arguments" >&2
+						exit 1
+						;;
+		esac
+		shift
+	done
+
 	local key=$1
 
 	local header=$(cat)
 	local nb=$(countkeys "$key" <<< "$header")
-	if [ $nb -gt 1 ]; then
+	if [ $nb -gt 1 -a -z "$opt_last" ]; then
 		echo "Error: key \"$key\" present more than once." > /dev/stderr
 		exit 1
 	fi
 
 	case "${key,,*}" in
 	subject)
-		awk '
+		awk --assign nb="$nb" '
 			BEGIN {
 				insubject = 0
 			}
 
 			tolower($1) ~ /subject:/ {
-				insubject = 1
-				next
+				nb--
+				if (nb == 0) {
+					insubject = 1
+					next
+				}
 			}
 
 			insubject && /^ / {
@@ -109,8 +180,6 @@ tag_extract () {
 
 			insubject {
 				insubject = 0
-				print
-				next
 			}
 
 			{
@@ -119,9 +188,12 @@ tag_extract () {
 		' <<< "$header"
 		;;
 	*)
-		awk '
+		awk --assign nb="$nb" '
 			tolower($1) ~ /'"${key,,*}"':/ {
-				next
+				nb--
+				if (nb == 0) {
+					next
+				}
 			}
 
 			{
@@ -132,8 +204,38 @@ tag_extract () {
 	esac
 }
 
-# tag_add <key> <value>
+# tag_add [options] <key> <value>
+# Options:
+#    -l, --last           Do not error out if a tag is already present, add it
+#                         after the last occurance
 tag_add () {
+	local temp=$(getopt -o l --long last -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
+	local opt_last
+
+	if [ $? != 0 ]; then
+		echo "Error: getopt error" >&2
+		exit 1
+	fi
+
+	eval set -- "$temp"
+
+	while true ; do
+		case "$1" in
+			-l|--last)
+						opt_last=1
+						;;
+			--)
+						shift
+						break
+						;;
+			*)
+						echo "Error: could not parse arguments" >&2
+						exit 1
+						;;
+		esac
+		shift
+	done
+
 	local key=$1
 	local value=$2
 
@@ -141,26 +243,30 @@ tag_add () {
 	from)
 		local header=$(cat)
 		local nb=$(countkeys "$key" <<< "$header")
-		if [ $nb -gt 0 ]; then
+		if [ $nb -gt 0 -a -z "$opt_last" ]; then
 			echo "Error: key \"$key\" already present." > /dev/stderr
 			exit 1
 		fi
 
-		awk --assign key="$key" --assign value="$value" '
+		awk --assign key="$key" --assign value="$value" --assign nb="$nb" '
 			BEGIN {
 				inserted = 0
 			}
 
-			NR==1 && /^From [0-9a-f]+/ {
+			NR == 1 && /^From [0-9a-f]+/ {
 				print
 				next
 			}
 
-			!inserted {
+			nb == 0 && !inserted {
 				print key ": " value
 				print
 				inserted = 1
 				next
+			}
+
+			tolower($1) ~ /'"${key,,*}"':/ {
+				nb--
 			}
 
 			{
@@ -176,24 +282,27 @@ tag_add () {
 			exit 1
 		fi
 
-		local -A prevkey=(["date"]="from:" ["subject"]="date:")
+		local -A prevkey=(["date"]="from" ["subject"]="date")
 
-		awk --assign key="$key" --assign value="$value" '
-			tolower($1) ~ /'"${prevkey[${key,,*}]}"'/ {
-				print
-				print key ": " value
-				next
-			}
+		nb=$(countkeys "${prevkey[${key,,*}]}" <<< "$header")
 
+		awk --assign key="$key" --assign value="$value" --assign nb="$nb" '
 			{
 				print
+			}
+
+			tolower($1) ~ /'"${prevkey[${key,,*}]}"':/ {
+				nb--
+				if (nb == 0) {
+					print key ": " value
+				}
 			}
 		' <<< "$header"
 		;;
 	patch-mainline | git-repo | git-commit | references)
 		local header=$(cat)
 		local nb=$(countkeys "$key" <<< "$header")
-		if [ $nb -gt 0 ]; then
+		if [ $nb -gt 0 -a -z "$opt_last" ]; then
 			echo "Error: key \"$key\" already present." > /dev/stderr
 			exit 1
 		fi
@@ -207,7 +316,7 @@ tag_add () {
 				keys["References:"] = 4
 			}
 
-			function keycmp(key1, key2,   tmp) {
+			function keycmp(key1, key2) {
 				return keys[key1] - keys[key2]
 			}
 			

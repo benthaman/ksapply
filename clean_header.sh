@@ -201,8 +201,8 @@ fi
 
 # References:
 
-references=$(echo -n "$header" | tag_get references)
-header=$(echo -n "$header" | tag_extract references)
+references=$(echo -n "$header" | tag_get --last references)
+header=$(echo -n "$header" | tag_extract --last references)
 
 # command line > References
 var_override ref "$references" "References"
@@ -213,7 +213,7 @@ if [ -z "$ref" ]; then
 	header=$(echo -n "$header" | tag_add References "(fill me in)")
 	edit=1
 else
-	header=$(echo -n "$header" | tag_add References "$ref")
+	header=$(echo -n "$header" | tag_add --last References "$ref")
 fi
 
 
@@ -223,15 +223,15 @@ if [ -n "$commit" ]; then
 
 	# Clean From:
 
-	patch_from=$(echo -n "$header" | tag_get from)
-	header=$(echo -n "$header" | tag_extract from)
-	original_from=$(echo -n "$original_header" | tag_get from)
+	patch_from=$(echo -n "$header" | tag_get --last from)
+	header=$(echo -n "$header" | tag_extract --last from)
+	original_from=$(echo -n "$original_header" | tag_get --last from)
 
 	# git format-patch > From
 	var_override from "$patch_from" "patch file From:"
 	var_override from "$original_from" "git format-patch From:"
 
-	header=$(echo -n "$header" | tag_add From "$from")
+	header=$(echo -n "$header" | tag_add --last From "$from")
 
 
 	# Clean Date:
