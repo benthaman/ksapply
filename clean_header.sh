@@ -267,24 +267,28 @@ if [ -n "$commit" ]; then
 	fi
 	# else ... keep the changes lower between the original patch file and
 	# the cleaned one
+fi
 
 
-	# Clean attributions
+# Clean attributions
 
-	patch_attributions=$(echo -n "$header" | tag_get_attribution_block)
+patch_attributions=$(echo -n "$header" | tag_get_attribution_block)
+# this may be added by exportpatch in its default configuration
+patch_attributions=$(echo -n "$patch_attributions" | grep -vF "Acked-by: Your Name <user@business.com>" || true)
+if [ -n "$commit" ]; then
 	original_attributions=$(echo -n "$original_header" | tag_get_attribution_block)
 	count=$(comm -23 <(echo "$original_attributions" | sort) <(echo "$patch_attributions" | sort) | wc -l)
 	if [ $count -gt 0 ]; then
 		echo "Warning: $count attribution lines missing from the patch file. Adding them." > /dev/stderr
 		new_block=$original_attributions$'\n'
 		new_block+=$patch_attributions
-		new_block=$(echo "$new_block" | uniq_nosort)
-		header=$(echo -n "$header" | tag_replace_attribution_block "$new_block")
+		patch_attributions=$(echo "$new_block" | uniq_nosort)
 	fi
 fi
+header=$(echo -n "$header" | tag_replace_attribution_block "$patch_attributions")
 
 
-# Acked-by:
+# Add Acked-by:
 
 name=$(git config --get user.name)
 email=$(git config --get user.email)
