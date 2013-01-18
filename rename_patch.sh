@@ -72,4 +72,6 @@ fi
 
 new_name="$patch_num$(echo "$subject" | remove_subject_annotation | format_sanitized_subject).patch"
 
-mv "$filename" "$new_name"
+if [ "$filename" != "$new_name" ]; then
+	mv "$filename" "$new_name"
+fi
