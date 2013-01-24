@@ -343,6 +343,7 @@ tag_add () {
 		;;
 	acked-by | signed-off-by | "cherry picked from commit")
 		local line
+		local header=$(cat)
 
 		if [ "${key,,*}" = "cherry picked from commit" ]; then
 			local nb=$(countkeys "$key" <<< "$header")
@@ -379,11 +380,11 @@ tag_add () {
 
 			END {
 				if (!added) {
-					print "'"$key"': '"$value"'"
+					print line
 				}
 			}
 
-		'
+		' <<< "$header"
 		;;
 	*)
 		echo "Error: I don't know where to add a tag of type \"$key\"." > /dev/stderr
