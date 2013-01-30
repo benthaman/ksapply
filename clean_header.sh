@@ -64,7 +64,7 @@ done
 # bash strips trailing newlines in variables, protect them with "---"
 if [ -n "$1" ]; then
 	filename=$1
-	patch=$(cat $1 && echo -n ---)
+	patch=$(cat "$filename" && echo -n ---)
 	shift
 else
 	patch=$(cat && echo -n ---)
