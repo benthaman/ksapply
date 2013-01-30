@@ -39,9 +39,9 @@ what needs to be.
 kernel$ git format-patch -o /tmp/patches/sp3 origin/SLE11-SP3..
 
 Check series.conf to find where the patch set will go and note the last patch
-before that (ex: "8be14ae drivers/net: fix up function prototypes after __dev*
-removals (bnc#795304 FATE#313649).") and the next patch after that (ex:
-"patches.drivers/iwlwifi-sp1-compatible-options").
+before that (ex:
+"patches.drivers/IB-0004-mlx4-Configure-extended-active-speeds.patch") and the
+next patch after that (ex: "patches.drivers/iwlwifi-sp1-compatible-options").
 
 kernel-source$ ./scripts/sequence-patch.sh patches.drivers/IB-0004-mlx4-Configure-extended-active-speeds.patch
 kernel-source$ cd tmp/current
