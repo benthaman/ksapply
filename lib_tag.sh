@@ -367,7 +367,7 @@ tag_add () {
 				attributions_seen = 1
 			}
 
-			attributions_seen && !added && (/^$/ || /^---$/) {
+			attributions_seen && !added && /^$/ || /^---$/ {
 				print line
 				print
 				added = 1
