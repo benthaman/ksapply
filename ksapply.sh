@@ -116,7 +116,7 @@ if patch_file=$(quilt next); then
 	fi
 	cat "$patch_new" | awk -f "$libdir"/patch_header.awk | quilt header -r
 
-	newname=$(quilt top | sed -r "s/^patches\/$number/$prefix/")
+	newname=$(quilt top | sed -r "s/^patches\/($number)?/$prefix/")
 	if ! quilt rename "$patch_dir/$newname"; then
 		quilt pop
 		cat "$patch_orig" > "$patch_file"
