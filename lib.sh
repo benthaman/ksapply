@@ -111,6 +111,7 @@ get_patch_num () {
 }
 
 # format_sanitized_subject
+# Transform a subject into a file name
 format_sanitized_subject () {
 	sed -re '
 		s/\.+/./g

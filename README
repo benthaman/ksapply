@@ -47,9 +47,9 @@ kernel-source$ ./scripts/sequence-patch.sh patches.drivers/IB-0004-mlx4-Configur
 kernel-source$ cd tmp/current
 kernel-source/tmp/current$ quilt import /tmp/patches/sp3/*
 kernel-source/tmp/current$ while ! ( quilt next | grep -q iwlwifi-sp1-compatible-options) && ksapply.sh
--r "bnc#790588 FATE#313912" -p tg3 -n patches.drivers/; do true;
+-r "bnc#790588 FATE#313912" -p tg3 -n patches.drivers/; do true; done
 kernel-source/tmp/current$ cd ../../
-kernel-source$ git st
+kernel-source$ git status
 [...]
 
 Add the patches to series.conf. If some patches depend on patches that change
