@@ -154,7 +154,12 @@ else
 			remote=$(echo "$result" | cut -d/ -f2)
 		else
 			branch=${result%%[~^]*}
-			remote=$(git config --get branch.$branch.remote)
+			if [ $branch = "stash" ]; then
+				echo "Error: cannot use stash to describe patch. Stopping to avoid possibly erroneous results." > /dev/stderr
+				exit 1
+			else
+				remote=$(git config --get branch.$branch.remote)
+			fi
 		fi
 		describe_url=$(git config --get remote.$remote.url)
 	fi
