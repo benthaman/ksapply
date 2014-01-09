@@ -84,16 +84,17 @@ expand_git_ref () {
 	done
 
 	local commit
-
 	while read commit; do
 		if [ -n "$commit" ]; then
 			# take the first word only, which will discard cruft
 			# like "(partial)"
 			commit=$(echo "$commit" | awk '{print $1}')
-			if [ -z "$opt_quiet" ]; then
-				local hash=$(git log -n1 --pretty=format:%H "$commit")
+			local hash
+			local cmd="git log -n1 --pretty=format:%H $commit"
+			if [ -z "$opt_quiet" ] && ! hash=$($cmd); then
+				return 1
 			else
-				local hash=$(git log -n1 --pretty=format:%H "$commit" 2>/dev/null || true)
+				hash=$($cmd 2>/dev/null || true)
 			fi
 			echo $hash
 		fi
