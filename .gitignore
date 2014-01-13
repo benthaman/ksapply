@@ -20,6 +20,7 @@
 # cscope files
 cscope.*
 ncscope.*
+tags
 
 *.orig
 *~
