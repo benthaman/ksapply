@@ -97,25 +97,16 @@ bpreset () {
 }
 alias bpclean=bpreset
 
-#like grep -q for paths of interest
+# Check that the patch passed via stdin touches only paths_of_interest
 _poicheck () {
-	local line
-	while read line; do
-		if [ "$line" ]; then
-			local matched=
-			local pattern
-			while read pattern; do
-				pattern=$(echo "$pattern" | sed -re 's/\*/.*/')
-				if echo "$line" | grep -Eq "$pattern"; then
-					matched=1
-					break
-				fi
-			done <<< "$paths_of_interest"
-			if [ -z "$matched" ]; then
-				return 1
-			fi
-		fi
-	done
+	local args=$(
+		while read path; do
+			echo "--exclude \"$path\""
+		done <<< "$paths_of_interest"
+	)
+	args=$(echo "$args" | xargs -d"\n")
+
+	eval "git apply --numstat $args" | wc -l | grep -q "^0$"
 }
 
 bpdoit () {
@@ -126,7 +117,7 @@ bpdoit () {
 	fi
 
 	while [ $(bpref) ]; do
-		if ! git log -n1 --name-only --pretty=format: $(bpref) | _poicheck; then
+		if ! git format-patch --stdout $(bpref)^..$(bpref) | _poicheck; then
 			echo "The following commit touches paths outside of the paths of interest. Please examine the situation." > /dev/stderr
 			bpnext > /dev/stderr
 			return 1

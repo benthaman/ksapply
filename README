@@ -48,7 +48,8 @@ backport.
 
 upstream$ git log --oneline --no-merges --reverse --pretty=tformat:%H v3.12.6.. -- drivers/net/ethernet/emulex/benet/ > /tmp/output
 kernel$ . ~/programming/suse/ksapply/backport-mode.sh
-kernel$ bpset drivers/net/ethernet/emulex/benet/ < /tmp/output
+# note that the pattern is quoted
+kernel$ bpset "drivers/net/ethernet/emulex/benet/*" < /tmp/output
 
 # examine the next commit using the following commands
 bpref
