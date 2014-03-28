@@ -46,7 +46,7 @@ As an alternative to the previous steps, use this procedure when there is no
 patch set that comes from the vendor and it is instead us who are doing the
 backport.
 
-upstream$ git log --oneline --no-merges --reverse --pretty=tformat:%H v3.12.6.. -- drivers/net/ethernet/emulex/benet/ > /tmp/output
+upstream$ git log --no-merges --reverse --pretty=tformat:%H v3.12.6.. -- drivers/net/ethernet/emulex/benet/ > /tmp/output
 kernel$ . ~/programming/suse/ksapply/backport-mode.sh
 # note that the pattern is quoted
 kernel$ bpset "drivers/net/ethernet/emulex/benet/*" < /tmp/output
@@ -75,11 +75,11 @@ and moved just before the current commit using git rebase -i.
 bpskip
 
 There is a command to automate the above steps. It applies the next commit and
-checks that the results build, for all remaining commits that were fed to
+checks that the result builds, for all remaining commits that were fed to
 `bpset`, one commit at a time. The command stops when there are problems.
 After manually fixing the problems, the command can be run again to resume
-where it stopped. To speed things up, make is only called for a directory,
-which is the argument.
+where it stopped. To speed things up, `make` is called with a target
+directory, which is the argument.
 bpdoit drivers/net/ethernet/emulex/benet/
 
 kernel$ git format-patch -o /tmp/patches/sp3 origin/SLE12
