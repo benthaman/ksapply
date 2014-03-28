@@ -109,6 +109,8 @@ _poicheck () {
 	eval "git apply --numstat $args" | wc -l | grep -q "^0$"
 }
 
+_jobsnb=$(($(cat /proc/cpuinfo | grep "^processor\>" | wc -l) * 2))
+
 bpdoit () {
 	if [ $# -lt 1 ]; then
 		echo "If you want to do it, you must specify build paths!" > /dev/stderr
@@ -128,7 +130,7 @@ bpdoit () {
 			return 1
 		fi
 
-		if ! make -j12 "$@"; then
+		if ! make -j$_jobsnb "$@"; then
 			echo "The last applied commit results in a build failure. Please examine the situation." > /dev/stderr
 			return 1
 		fi
