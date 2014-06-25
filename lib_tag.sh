@@ -359,18 +359,24 @@ tag_add () {
 
 		awk --assign line="$line" '
 			BEGIN {
-				attributions_seen = 0
 				added = 0
 			}
 
-			$1 ~ /Signed-off-by:/ {
-				attributions_seen = 1
+			!added && /^---$/ {
+				print line
+				added = 1
+				print
+				next
 			}
 
-			attributions_seen && !added && /^$/ || /^---$/ {
-				print line
+			!added && /^$/ {
+				getline
+				if ($0 ~ "^(diff|---) ") {
+					print line
+					added = 1
+				}
+				print ""
 				print
-				added = 1
 				next
 			}
 
