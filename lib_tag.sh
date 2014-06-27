@@ -357,40 +357,7 @@ tag_add () {
 			line="$key: $value"
 		fi
 
-		awk --assign line="$line" '
-			BEGIN {
-				added = 0
-			}
-
-			!added && /^---$/ {
-				print line
-				added = 1
-				print
-				next
-			}
-
-			!added && /^$/ {
-				getline
-				if ($0 ~ "^(diff|---) ") {
-					print line
-					added = 1
-				}
-				print ""
-				print
-				next
-			}
-
-			{
-				print
-			}
-
-			END {
-				if (!added) {
-					print line
-				}
-			}
-
-		' <<< "$header"
+		append_attribution "$line" <<< "$header"
 		;;
 	*)
 		echo "Error: I don't know where to add a tag of type \"$key\"." > /dev/stderr
@@ -398,65 +365,110 @@ tag_add () {
 	esac
 }
 
-# tag_get_attribution_names
-tag_get_attribution_names () {
+# get_attributions
+get_attributions () {
 	awk '
-		$1 ~ /Signed-off-by:/ || $1 ~ /Acked-by:/ {
+		tolower($1) ~ /^[^ ]+-by:$/ {
+			print
+		}
+	'
+}
+
+# get_attribution_names
+get_attribution_names () {
+	get_attributions | awk '
+		{
 			split($0, array, FS, seps)
 			print substr($0, 1 + length(seps[0]) + length(array[1]) + length(seps[1]))
 		}
 	'
 }
 
-# tag_get_attribution_block
-tag_get_attribution_block () {
-	awk '
+# append_attribution <attribution line>
+append_attribution () {
+	local line=$1
+
+	awk --assign line="$line" '
 		BEGIN {
-			inattributions = 0
+			added = 0
+			empty_line_nb = 0
+			attribseen = 0
 		}
 
-		$1 ~ /Signed-off-by:/ || $1 ~ /Acked-by:/ || $1 ~ /Tested-by:/ || $1 ~ /Reported-by:/ || tolower($1) ~ /cc:/ {
-			inattributions = 1
+		function print_attribution(attribseen, line, before_diffstat)
+		{
+			if (!attribseen) {
+				print ""
+			}
+			print line
+			if (!before_diffstat) {
+				print ""
+			}
+
+			added = 1
+			empty_line_nb = 0
 		}
 
-		inattributions && (/^$/ || /^---$/) {
-			inattributions = 0
+		function playback_empty_lines()
+		{
+			for (; empty_line_nb > 0; empty_line_nb--) {
+				print ""
+			}
 		}
 
-		inattributions {
+		/^$/ {
+			empty_line_nb++
+			next
+		}
+
+		tolower($1) ~ /^[^ ]+-by:$/ {
+			attribseen = 1
+		}
+
+		!added && /^---$/ {
+			print_attribution(attribseen, line, 1)
+		}
+
+		# from quilt, patchfns
+		!added && /^(---|\*\*\*|Index:)[ \t][^ \t]|^diff -/ {
+			print_attribution(attribseen, line, 0)
+		}
+
+		{
+			playback_empty_lines()
 			print
+		}
+
+		END {
+			if (!added) {
+				print_attribution(attribseen, line, 0)
+			} else {
+				playback_empty_lines()
+			}
 		}
 	'
 }
 
-# tag_replace_attribution_block <new content>
-tag_replace_attribution_block () {
-	local content=$1
+# insert_attributions <attribution lines>
+insert_attributions () {
+	local attrs=$1
+	local header=$(cat && echo ---)
 
-	awk --assign content="$content" '
-		BEGIN {
-			inattributions = 0
-			added = 0
-		}
-
-		$1 ~ /Signed-off-by:/ || $1 ~ /Acked-by:/ || $1 ~ /Tested-by:/ || $1 ~ /Reported-by:/ || tolower($1) ~ /cc:/ {
-			inattributions = 1
-		}
-
-		inattributions && (/^$/ || /^---$/) {
-			inattributions = 0
-			print content
-			added = 1
-		}
-
-		! inattributions {
-			print
-		}
-
-		END { 
-			if (!added) {
-				print content
+	if [ "$(get_attributions <<< ${header%---})" ]; then
+		echo -n "${header%---}" | awk --assign attr="$1" '
+			tolower($1) ~ /^[^ ]+-by:$/ {
+				print attr
 			}
-		}
-	'
+
+			{
+				print
+			}
+		'
+	else
+		while read attribution; do
+			header=$(echo -n "${header%---}" | append_attribution "$attribution" && echo ---)
+		done <<< "$attrs"
+
+		echo -n "${header%---}"
+	fi
 }

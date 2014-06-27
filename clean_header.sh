@@ -277,20 +277,19 @@ fi
 
 # Clean attributions
 
-patch_attributions=$(echo -n "$header" | tag_get_attribution_block)
 # this may be added by exportpatch in its default configuration
-patch_attributions=$(echo -n "$patch_attributions" | grep -vF "Acked-by: Your Name <user@business.com>" || true)
+header=$(echo -n "$header" | grep -vF "Acked-by: Your Name <user@business.com>")
+
+patch_attributions=$(echo -n "$header" | get_attributions)
 if [ -n "$commit" ]; then
-	original_attributions=$(echo -n "$original_header" | tag_get_attribution_block)
-	count=$(comm -23 <(echo "$original_attributions" | sort) <(echo "$patch_attributions" | sort) | wc -l)
+	original_attributions=$(echo -n "$original_header" | get_attributions)
+	missing=$(grep -vf <(echo "$patch_attributions") <(echo "$original_attributions") || true)
+	count=$(echo -n "$missing" | wc -l)
 	if [ $count -gt 0 ]; then
 		echo "Warning: $count attribution lines missing from the patch file. Adding them." > /dev/stderr
-		new_block=$original_attributions$'\n'
-		new_block+=$patch_attributions
-		patch_attributions=$(echo "$new_block" | uniq_nosort)
+		header=$(echo -n "$header" | insert_attributions "$missing")
 	fi
 fi
-header=$(echo -n "$header" | tag_replace_attribution_block "$patch_attributions")
 
 
 # Add Acked-by:
@@ -307,7 +306,7 @@ if [ -z "$name" -o -z "$email" ]; then
 	edit=1
 fi
 signature="$name <$email>"
-if ! echo -n "$header" | tag_get_attribution_names | grep -q "$signature"; then
+if ! echo -n "$header" | get_attribution_names | grep -q "$signature"; then
 	header=$(echo -n "${header%---}" | tag_add Acked-by "$signature" && echo -n ---)
 fi
 
