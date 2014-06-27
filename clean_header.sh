@@ -100,7 +100,7 @@ if [ -n "$cherry" ]; then
 fi
 
 git_commit=$(echo "$header" | tag_get git-commit | expand_git_ref)
-header=$(echo -n "$header" | tag_extract git-commit)
+header=$(echo -n "$header" | tag_remove git-commit)
 
 opt_commit=$(echo "$opt_commit" | expand_git_ref)
 
@@ -169,7 +169,7 @@ fi
 # Patch-mainline:
 
 patch_mainline=$(echo -n "$header" | tag_get patch-mainline)
-header=$(echo -n "$header" | tag_extract patch-mainline)
+header=$(echo -n "$header" | tag_remove patch-mainline)
 
 # Sometimes the tag does not include -rcX, I prefer to have it
 # var_override can take care of it, but it will generate a warning
@@ -193,7 +193,7 @@ fi
 # Git-repo:
 
 git_repo=$(echo -n "$header" | tag_get git-repo)
-header=$(echo -n "$header" | tag_extract git-repo)
+header=$(echo -n "$header" | tag_remove git-repo)
 
 # git config > Git-repo
 var_override remote_url "$git_repo" "Git-repo"
@@ -206,13 +206,13 @@ fi
 
 # Patch-filtered:
 # may be added by the exportpatch tool
-header=$(echo -n "$header" | tag_extract patch-filtered)
+header=$(echo -n "$header" | tag_remove patch-filtered)
 
 
 # References:
 
 references=$(echo -n "$header" | tag_get --last references)
-header=$(echo -n "$header" | tag_extract --last references)
+header=$(echo -n "$header" | tag_remove --last references)
 
 # command line > References
 var_override ref "$references" "References"
@@ -234,7 +234,7 @@ if [ -n "$commit" ]; then
 	# Clean From:
 
 	patch_from=$(echo -n "$header" | tag_get --last from)
-	header=$(echo -n "$header" | tag_extract --last from)
+	header=$(echo -n "$header" | tag_remove --last from)
 	original_from=$(echo -n "$original_header" | tag_get --last from)
 
 	# git format-patch > From
@@ -247,7 +247,7 @@ if [ -n "$commit" ]; then
 	# Clean Date:
 
 	patch_date=$(echo -n "$header" | tag_get date)
-	header=$(echo -n "$header" | tag_extract date)
+	header=$(echo -n "$header" | tag_remove date)
 	original_date=$(echo -n "$original_header" | tag_get date)
 
 	# git format-patch > date
@@ -267,7 +267,7 @@ if [ -n "$commit" ]; then
 	var_override subject "$original_subject" "git format-patch Subject:"
 
 	if [ "$original_subject" != "$patch_subject" ]; then
-		header=$(echo -n "$header" | tag_extract subject)
+		header=$(echo -n "$header" | tag_remove subject)
 		header=$(echo -n "$header" | tag_add Subject "$subject")
 	fi
 	# else ... keep the changes lower between the original patch file and

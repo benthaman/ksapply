@@ -99,11 +99,11 @@ tag_get () {
 	esac
 }
 
-# tag_extract [options] <key>
+# tag_remove [options] <key>
 # Options:
 #    -l, --last           Do not error out if a tag is present more than once,
 #                         extract the last occurance
-tag_extract () {
+tag_remove () {
 	local temp=$(getopt -o l --long last -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
 	local opt_last
 
