@@ -64,10 +64,10 @@ done
 # bash strips trailing newlines in variables, protect them with "---"
 if [ -n "$1" ]; then
 	filename=$1
-	patch=$(cat "$filename" && echo -n ---)
+	patch=$(cat "$filename" && echo ---)
 	shift
 else
-	patch=$(cat && echo -n ---)
+	patch=$(cat && echo ---)
 fi
 
 if [ -n "$1" ]; then
@@ -82,14 +82,14 @@ if [ ! -d "$LINUX_GIT" ] || ! git log -n1 > /dev/null; then
 fi
 
 if echo -n "${patch%---}" | grep -q $'\r'; then
-	patch=$(echo -n "${patch%---}" | sed -e 's/\r//g' && echo -n "---")
+	patch=$(echo -n "${patch%---}" | sed -e 's/\r//g' && echo ---)
 fi
 
-body=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_body.awk && echo -n "---")
+body=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_body.awk && echo ---)
 # * Remove "From" line with tag, since it points to a local commit from
 #   kernel.git that I created
 # * Remove "Conflicts" section
-header=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_header.awk | from_extract | awk -f "$libdir"/clean_conflicts.awk && echo -n "---")
+header=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_header.awk | from_extract | awk -f "$libdir"/clean_conflicts.awk && echo ---)
 
 
 # Git-commit:
@@ -228,7 +228,7 @@ fi
 
 
 if [ -n "$commit" ]; then
-	original_header=$(git format-patch --stdout -p $commit^..$commit | awk -f "$libdir"/patch_header.awk && echo -n ---)
+	original_header=$(git format-patch --stdout -p $commit^..$commit | awk -f "$libdir"/patch_header.awk && echo ---)
 
 
 	# Clean From:
@@ -307,7 +307,7 @@ if [ -z "$name" -o -z "$email" ]; then
 fi
 signature="$name <$email>"
 if ! echo -n "$header" | get_attribution_names | grep -q "$signature"; then
-	header=$(echo -n "${header%---}" | tag_add Acked-by "$signature" && echo -n ---)
+	header=$(echo -n "${header%---}" | tag_add Acked-by "$signature" && echo ---)
 fi
 
 
@@ -320,7 +320,7 @@ if [ -n "$edit" ]; then
 		tmpfile=$(mktemp --tmpdir clean_header.XXXXXXXXXX)
 		echo -n "${header%---}" > "$tmpfile"
 		$EDITOR "$tmpfile"
-		header=$(cat "$tmpfile" && echo -n "---")
+		header=$(cat "$tmpfile" && echo ---)
 		rm "$tmpfile"
 		trap - EXIT
 	fi

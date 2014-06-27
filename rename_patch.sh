@@ -52,7 +52,7 @@ fi
 
 # bash strips trailing newlines in variables, protect them with "---"
 filename=$1
-patch=$(cat $1 && echo -n ---)
+patch=$(cat $1 && echo ---)
 shift
 
 if [ -n "$1" ]; then
@@ -61,8 +61,8 @@ if [ -n "$1" ]; then
 	exit 1
 fi
 
-body=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_body.awk && echo -n "---")
-header=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_header.awk && echo -n "---")
+body=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_body.awk && echo ---)
+header=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_header.awk && echo ---)
 
 subject=$(echo "$header" | tag_get subject)
 patch_num=$(echo "$subject" | get_patch_num)

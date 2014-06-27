@@ -46,10 +46,10 @@ done
 # bash strips trailing newlines in variables, protect them with "---"
 if [ -n "$1" ]; then
 	filename=$1
-	patch=$(cat $1 && echo -n ---)
+	patch=$(cat $1 && echo ---)
 	shift
 else
-	patch=$(cat && echo -n ---)
+	patch=$(cat && echo ---)
 fi
 
 if [ -n "$1" ]; then
@@ -58,8 +58,8 @@ if [ -n "$1" ]; then
 	exit 1
 fi
 
-body=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_body.awk && echo -n "---")
-header=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_header.awk && echo -n "---")
+body=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_body.awk && echo "---")
+header=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_header.awk && echo "---")
 
 git_commit=$(echo "$header" | tag_get git-commit | awk '{print $1}')
 if [ "$git_commit" ]; then
