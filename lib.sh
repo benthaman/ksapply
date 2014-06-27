@@ -122,11 +122,6 @@ format_sanitized_subject () {
 	'
 }
 
-# uniq_nosort
-uniq_nosort () {
-	awk '!a[$0]++'
-}
-
 # cheat_diffstat
 # Adds fake content to a patch body so that diffstat will show something for
 # renames

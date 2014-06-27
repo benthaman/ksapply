@@ -12,25 +12,6 @@ countkeys () {
 	esac
 }
 
-# tag_position <key>
-tag_position () {
-	local key=$1
-
-	local header=$(cat)
-	local nb=$(countkeys "$key" <<< "$header")
-	if [ $nb -gt 1 ]; then
-		echo "Error: key \"$key\" present more than once." > /dev/stderr
-		exit 1
-	fi
-
-	awk '
-		tolower($1) ~ /'"${key,,*}"':/ {
-			print NR
-			exit
-		}
-	' <<< "$header"
-}
-
 # tag_get [options] <key>
 # Options:
 #    -l, --last           Do not error out if a tag is present more than once,
