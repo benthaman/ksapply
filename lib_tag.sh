@@ -152,7 +152,7 @@ tag_extract () {
 
 	local key=$1
 
-	local header=$(cat)
+	local header=$(cat && echo ---)
 	local nb=$(countkeys "$key" <<< "$header")
 	if [ $nb -gt 1 -a -z "$opt_last" ]; then
 		echo "Error: key \"$key\" present more than once." > /dev/stderr
@@ -161,7 +161,7 @@ tag_extract () {
 
 	case "${key,,*}" in
 	subject)
-		awk --assign nb="$nb" '
+		echo -n "${header%---}" | awk --assign nb="$nb" '
 			BEGIN {
 				insubject = 0
 			}
@@ -185,10 +185,10 @@ tag_extract () {
 			{
 				print
 			}
-		' <<< "$header"
+		'
 		;;
 	*)
-		awk --assign nb="$nb" '
+		echo -n "${header%---}" | awk --assign nb="$nb" '
 			tolower($1) ~ /'"${key,,*}"':/ {
 				nb--
 				if (nb == 0) {
@@ -199,7 +199,7 @@ tag_extract () {
 			{
 				print
 			}
-		' <<< "$header"
+		'
 		;;
 	esac
 }
@@ -241,14 +241,14 @@ tag_add () {
 
 	case "${key,,*}" in
 	from)
-		local header=$(cat)
+		local header=$(cat && echo ---)
 		local nb=$(countkeys "$key" <<< "$header")
 		if [ $nb -gt 0 -a -z "$opt_last" ]; then
 			echo "Error: key \"$key\" already present." > /dev/stderr
 			exit 1
 		fi
 
-		awk --assign key="$key" --assign value="$value" --assign nb="$nb" '
+		echo -n "${header%---}" | awk --assign key="$key" --assign value="$value" --assign nb="$nb" '
 			BEGIN {
 				inserted = 0
 			}
@@ -272,10 +272,10 @@ tag_add () {
 			{
 				print
 			}
-		' <<< "$header"
+		'
 		;;
 	date | subject)
-		local header=$(cat)
+		local header=$(cat && echo ---)
 		local nb=$(countkeys "$key" <<< "$header")
 		if [ $nb -gt 0 ]; then
 			echo "Error: key \"$key\" already present." > /dev/stderr
@@ -286,7 +286,7 @@ tag_add () {
 
 		nb=$(countkeys "${prevkey[${key,,*}]}" <<< "$header")
 
-		awk --assign key="$key" --assign value="$value" --assign nb="$nb" '
+		echo -n "${header%---}" | awk --assign key="$key" --assign value="$value" --assign nb="$nb" '
 			{
 				print
 			}
@@ -297,17 +297,17 @@ tag_add () {
 					print key ": " value
 				}
 			}
-		' <<< "$header"
+		'
 		;;
 	patch-mainline | git-repo | git-commit | references)
-		local header=$(cat)
+		local header=$(cat && echo ---)
 		local nb=$(countkeys "$key" <<< "$header")
 		if [ $nb -gt 0 -a -z "$opt_last" ]; then
 			echo "Error: key \"$key\" already present." > /dev/stderr
 			exit 1
 		fi
 
-		awk '
+		echo -n "${header%---}" | awk '
 			BEGIN {
 				added = 0
 				keys["Patch-mainline:"] = 1
@@ -339,11 +339,11 @@ tag_add () {
 			{
 				print
 			}
-		' <<< "$header"
+		'
 		;;
 	acked-by | signed-off-by | "cherry picked from commit")
 		local line
-		local header=$(cat)
+		local header=$(cat && echo ---)
 
 		if [ "${key,,*}" = "cherry picked from commit" ]; then
 			local nb=$(countkeys "$key" <<< "$header")
@@ -357,7 +357,7 @@ tag_add () {
 			line="$key: $value"
 		fi
 
-		append_attribution "$line" <<< "$header"
+		echo -n "${header%---}" | append_attribution "$line"
 		;;
 	*)
 		echo "Error: I don't know where to add a tag of type \"$key\"." > /dev/stderr
