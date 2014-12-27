@@ -15,7 +15,7 @@ countkeys () {
 # tag_get [options] <key>
 # Options:
 #    -l, --last           Do not error out if a tag is present more than once,
-#                         return the last occurance
+#                         return the last occurrence
 tag_get () {
 	local temp=$(getopt -o l --long last -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
 	local opt_last
@@ -102,7 +102,7 @@ tag_get () {
 # tag_remove [options] <key>
 # Options:
 #    -l, --last           Do not error out if a tag is present more than once,
-#                         extract the last occurance
+#                         extract the last occurrence
 tag_remove () {
 	local temp=$(getopt -o l --long last -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
 	local opt_last
@@ -188,7 +188,7 @@ tag_remove () {
 # tag_add [options] <key> <value>
 # Options:
 #    -l, --last           Do not error out if a tag is already present, add it
-#                         after the last occurance
+#                         after the last occurrence
 tag_add () {
 	local temp=$(getopt -o l --long last -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
 	local opt_last
