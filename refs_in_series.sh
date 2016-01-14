@@ -39,12 +39,12 @@ while true ; do
 done
 
 if [ ! -r "series.conf" ]; then
-	echo "\"series.conf\" file could not be read. Are you at the base of" > /dev/stderr
-	echo "a kernel-source.git tree?" > /dev/stderr
+	echo "Error: \"series.conf\" file could not be read. Are you at the base of a kernel-source.git tree?" > /dev/stderr
+	exit 1
 fi
 
 if [ ! -d "$LINUX_GIT" ] || ! GIT_DIR=$LINUX_GIT/.git git log -n1 > /dev/null; then
-	echo "Warning: kernel git tree not found at \"$LINUX_GIT\" (check the LINUX_GIT environment variable)" > /dev/stderr
+	echo "Error: kernel git tree not found at \"$LINUX_GIT\" (check the LINUX_GIT environment variable)" > /dev/stderr
 	exit 1
 fi
 
