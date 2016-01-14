@@ -51,7 +51,7 @@ patch set that comes from the vendor and it is instead us who are doing the
 backport.
 
 +++ Generate the list of commit ids to backport
-upstream$ git log --no-merges --reverse --pretty=tformat:%H v3.12.6.. -- drivers/net/ethernet/emulex/benet/ > /tmp/output
+upstream$ git log --no-merges --topo-order --reverse --pretty=tformat:%H v3.12.6.. -- drivers/net/ethernet/emulex/benet/ > /tmp/output
 
 Optionally, generate a description of the commits to backport.
 
