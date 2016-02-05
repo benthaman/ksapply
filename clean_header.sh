@@ -19,7 +19,7 @@ usage () {
 	echo ""
 	echo "Options:"
 	printf "\t-c, --commit=<refspec>  Upstream commit id used to tag the patch file.\n"
-	printf "\t-r, --reference=<bnc>   bnc or fate number used to tag the patch file.\n"
+	printf "\t-r, --reference=<bsc>   bsc or fate number used to tag the patch file.\n"
 	printf "\t-h, --help              Print this help\n"
 	echo ""
 }

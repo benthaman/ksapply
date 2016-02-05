@@ -16,7 +16,7 @@ usage () {
 	printf "\t-h, --help              Print this help\n"
 	echo "Options passed to clean_header.sh:"
 	printf "\t-c, --commit=<refspec>  Upstream commit id used to tag the patch file.\n"
-	printf "\t-r, --reference=<bnc>   bnc or fate number used to tag the patch file.\n"
+	printf "\t-r, --reference=<bsc>   bsc or fate number used to tag the patch file.\n"
 	echo ""
 }
 
