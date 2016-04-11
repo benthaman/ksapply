@@ -19,6 +19,8 @@ refs_in_series.sh
 	Check if a commit is already part of a branch in kernel-source.git
 	Useful to check if a list of commits have already been backported to
 	our kernel.
+check-missing-fixes.sh
+	To check a list of commits if there is a missing patch for each commit.
 
 + Example workflow
 ++ Clean the patch set
@@ -56,6 +58,9 @@ upstream$ git log --no-merges --topo-order --reverse --pretty=tformat:%H v3.12.6
 Optionally, generate a description of the commits to backport.
 
 upstream$ cat /tmp/output | xargs -n1 git log -n1 --oneline > /tmp/list
+
+# to check if there is any missing patch in the commits list
+upstream$ cat /tmp/output | check-missing-fixes.sh > /tmp/list.chk
 
 Optionally, check which commits in the list have already been applied to
 kernel-source.git. Afterwards, you may wish to regenerate the list of commit
