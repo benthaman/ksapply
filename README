@@ -24,7 +24,8 @@ refs_in_series.sh
 	our kernel.
 
 + Example workflow
-++ Clean the patch set
+++ Obtain a patch set
++++ Option 1) Patch files from an external source
 When the patches come from vendors and have uncertain content: run a first
 pass of clean_patch.sh.
 
@@ -34,7 +35,7 @@ Although not mandatory, this step gives an idea of what condition the patch
 set is in to begin with. If this step succeeds, we will be able to have nice
 tags at the end.
 
-++ Import the patch set into kernel.git
+++++ Import the patch set into kernel.git
 Import the patch set into kernel.git to make sure that it applies, compiles
 and works. The custom SUSE tags (Patch-mainline, ...) will be lost in the
 process. Before doing `git am`, run armor_origin.sh which transforms the
@@ -48,12 +49,12 @@ what needs to be.
 
 kernel$ git format-patch -o /tmp/patches/sp3 origin/SLE11-SP3..
 
-++ Create the patch set
++++ Option 2) Commits from a git repository
 As an alternative to the previous steps, use this procedure when there is no
 patch set that comes from the vendor and it is instead us who are doing the
 backport.
 
-+++ Generate the list of commit ids to backport
+++++ Generate the list of commit ids to backport
 upstream$ git log --no-merges --topo-order --reverse --pretty=tformat:%H v3.12.6.. -- drivers/net/ethernet/emulex/benet/ > /tmp/output
 
 Optionally, generate a description of the commits to backport.
@@ -74,7 +75,7 @@ or skip them during the backport.
 # note that the path is a pattern, not just a base directory
 kernel-source$ cat /tmp/list | refs_in_series.sh "drivers/net/ethernet/emulex/benet/*"
 
-+++ Cherry-pick each desired commit to kernel.git
+++++ Cherry-pick each desired commit to kernel.git
 kernel$ . ~/programming/suse/ksapply/backport-mode.sh
 # note that the pattern is quoted
 kernel$ bpset "drivers/net/ethernet/emulex/benet/*" < /tmp/output
