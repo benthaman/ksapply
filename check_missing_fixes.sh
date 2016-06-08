@@ -2,12 +2,19 @@
 
 progname=$(basename "$0")
 usage () {
-	echo "Usage: $progname"
+	echo "Usage: $progname [OPTIONS]"
 	echo ""
-	echo "Read git hash from stdin and check if there is a missing patch"
-	echo ""
-	echo "Options:"
-	printf "\t-h                      Print this help\n"
+	cat <<"EOD"
+Read a list of git hashes from stdin and print information about commits which
+reference these hashes in their log and which are not part of the list.
+
+The input list must be partially ordered such that if it already contains some
+fixes, they appear after the commit they fix. Otherwise, fixes may appear
+multiple times in the output. Use `git sort` if needed.
+
+Options:
+	-h                      Print this help
+EOD
 }
 
 while getopts ":h" opt; do
