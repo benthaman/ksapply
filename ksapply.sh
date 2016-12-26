@@ -33,15 +33,14 @@ clean_tempfiles () {
 trap 'clean_tempfiles' EXIT
 
 
-TEMP=$(getopt -o p:nc:r:h --long prefix:,number,commit:,reference:,help -n "$progname" -- "$@")
+result=$(getopt -o p:nc:r:h --long prefix:,number,commit:,reference:,help -n "$progname" -- "$@")
 
 if [ $? != 0 ]; then
 	echo "Error: getopt error" >&2
 	exit 1
 fi
 
-# Note the quotes around `$TEMP': they are essential!
-eval set -- "$TEMP"
+eval set -- "$result"
 
 while true ; do
         case "$1" in

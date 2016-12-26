@@ -11,14 +11,14 @@ usage () {
 	echo ""
 }
 
-TEMP=$(getopt -o h --long help -n "$progname" -- "$@")
+result=$(getopt -o h --long help -n "$progname" -- "$@")
 
 if [ $? != 0 ]; then
 	echo "Error: getopt error" >&2
 	exit 1
 fi
 
-eval set -- "$TEMP"
+eval set -- "$result"
 
 while true ; do
         case "$1" in

@@ -6,7 +6,7 @@ bash_single_esc () {
 # Options:
 #    -a, --allow-empty    Allow an empty "value" to override the value of "var"
 var_override () {
-	local temp=$(getopt -o a --long allow-empty -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
+	local result=$(getopt -o a --long allow-empty -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
 	local opt_empty
 
 	if [ $? != 0 ]; then
@@ -14,7 +14,7 @@ var_override () {
 		exit 1
 	fi
 
-	eval set -- "$temp"
+	eval set -- "$result"
 
 	while true ; do
 		case "$1" in
@@ -56,7 +56,7 @@ var_override () {
 # Options:
 #    -q, --quiet          Do not error out if a refspec is not found, just print an empty line
 expand_git_ref () {
-	local temp=$(getopt -o q --long quiet -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
+	local result=$(getopt -o q --long quiet -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
 	local opt_quiet
 
 	if [ $? != 0 ]; then
@@ -64,7 +64,7 @@ expand_git_ref () {
 		exit 1
 	fi
 
-	eval set -- "$temp"
+	eval set -- "$result"
 
 	while true ; do
 		case "$1" in

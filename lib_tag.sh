@@ -17,7 +17,7 @@ countkeys () {
 #    -l, --last           Do not error out if a tag is present more than once,
 #                         return the last occurrence
 tag_get () {
-	local temp=$(getopt -o l --long last -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
+	local result=$(getopt -o l --long last -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
 	local opt_last
 
 	if [ $? != 0 ]; then
@@ -25,7 +25,7 @@ tag_get () {
 		exit 1
 	fi
 
-	eval set -- "$temp"
+	eval set -- "$result"
 
 	while true ; do
 		case "$1" in
@@ -104,7 +104,7 @@ tag_get () {
 #    -l, --last           Do not error out if a tag is present more than once,
 #                         extract the last occurrence
 tag_remove () {
-	local temp=$(getopt -o l --long last -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
+	local result=$(getopt -o l --long last -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
 	local opt_last
 
 	if [ $? != 0 ]; then
@@ -112,7 +112,7 @@ tag_remove () {
 		exit 1
 	fi
 
-	eval set -- "$temp"
+	eval set -- "$result"
 
 	while true ; do
 		case "$1" in
@@ -190,7 +190,7 @@ tag_remove () {
 #    -l, --last           Do not error out if a tag is already present, add it
 #                         after the last occurrence
 tag_add () {
-	local temp=$(getopt -o l --long last -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
+	local result=$(getopt -o l --long last -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
 	local opt_last
 
 	if [ $? != 0 ]; then
@@ -198,7 +198,7 @@ tag_add () {
 		exit 1
 	fi
 
-	eval set -- "$temp"
+	eval set -- "$result"
 
 	while true ; do
 		case "$1" in
