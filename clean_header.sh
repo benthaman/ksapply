@@ -18,14 +18,17 @@ usage () {
 	echo "Usage: $progname [options] [patch file]"
 	echo ""
 	echo "Options:"
-	printf "\t-c, --commit=<refspec>  Upstream commit id used to tag the patch file.\n"
-	printf "\t-r, --reference=<bsc>   bsc or fate number used to tag the patch file.\n"
-	printf "\t-h, --help              Print this help\n"
+	echo "    -c, --commit=<refspec>  Upstream commit id used to tag the patch file."
+	echo "    -r, --reference=<bsc>   bsc or fate number used to tag the patch file."
+	echo "    -s, --skip=<domain>     Skip adding Acked-by tag if there is already an"
+	echo "                            attribution line with an email from this domain."
+	echo "                            (Can be used multiple times.)"
+	echo "    -h, --help              Print this help"
 	echo ""
 }
 
 
-result=$(getopt -o c:r:h --long commit:,reference:,help -n "$progname" -- "$@")
+result=$(getopt -o c:r:s:h --long commit:,reference:,skip:,help -n "$progname" -- "$@")
 if [ $? != 0 ]; then
 	echo "Error: getopt error" >&2
 	exit 1
@@ -41,6 +44,10 @@ while true ; do
 					;;
                 -r|--reference)
 					opt_ref=$2
+					shift
+					;;
+                -s|--skip)
+					opt_skip+=($2)
 					shift
 					;;
                 -h|--help)
@@ -304,7 +311,10 @@ if [ -z "$name" -o -z "$email" ]; then
 	edit=1
 fi
 signature="$name <$email>"
-if ! echo -n "$header" | get_attribution_names | grep -q "$signature"; then
+
+patterns=$opt_skip
+patterns+=($signature)
+if ! echo -n "$header" | get_attribution_names | grep -qF "$(echo ${patterns[@]} | xargs -n1)"; then
 	header=$(echo -n "${header%---}" | tag_add Acked-by "$signature" && echo ---)
 fi
 
