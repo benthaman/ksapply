@@ -72,8 +72,6 @@ bpcherry-pick-include () {
 		for arg in "$@"; do
 			echo "--include \"$arg\""
 		done
-	)
-	args+=$(
 		while read path; do
 			echo "--include \"$path\""
 		done <<< "$paths_of_interest"
