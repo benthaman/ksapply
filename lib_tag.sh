@@ -422,7 +422,7 @@ append_attribution () {
 
 		END {
 			if (!added) {
-				print_attribution(attribseen, line, 0)
+				print_attribution(attribseen, line, 1)
 			} else {
 				playback_empty_lines()
 			}
