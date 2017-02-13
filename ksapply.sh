@@ -11,12 +11,13 @@ usage () {
 	echo "Usage: $progname [options] <dst \"patches.xxx\" dir>"
 	echo ""
 	echo "Options:"
-	printf "\t-p, --prefix=<prefix>   Add a prefix to the patch file name.\n"
-	printf "\t-n, --number            Keep the number prefix in the patch file name.\n"
-	printf "\t-h, --help              Print this help\n"
+	printf "\t-p, --prefix=<prefix>       Add a prefix to the patch file name.\n"
+	printf "\t-n, --number                Keep the number prefix in the patch file name.\n"
+	printf "\t-h, --help                  Print this help\n"
 	echo "Options passed to clean_header.sh:"
-	printf "\t-c, --commit=<refspec>  Upstream commit id used to tag the patch file.\n"
-	printf "\t-r, --reference=<bsc>   bsc or fate number used to tag the patch file.\n"
+	printf "\t-c, --commit=<refspec>      Upstream commit id used to tag the patch file.\n"
+	printf "\t-r, --reference=<bsc>       bsc or fate number used to tag the patch file.\n"
+	printf "\t-R, --soft-reference=<bsc>  bsc or fate number used to tag the patch file if no other reference is found.\n"
 	echo ""
 }
 
@@ -33,7 +34,7 @@ clean_tempfiles () {
 trap 'clean_tempfiles' EXIT
 
 
-result=$(getopt -o p:nc:r:h --long prefix:,number,commit:,reference:,help -n "$progname" -- "$@")
+result=$(getopt -o p:nc:r:R:h --long prefix:,number,commit:,reference:,soft-reference:,help -n "$progname" -- "$@")
 
 if [ $? != 0 ]; then
 	echo "Error: getopt error" >&2
@@ -57,6 +58,10 @@ while true ; do
 					;;
                 -r|--reference)
 					opt_ref=$2
+					shift
+					;;
+                -R|--soft-reference)
+					opt_soft=$2
 					shift
 					;;
                 -h|--help)
@@ -108,7 +113,7 @@ if patch_file=$(QUILT_PATCHES_PREFIX=1 quilt next); then
 	patch_new=$(mktemp --tmpdir ksapply-patch_new.XXXXXXXXXX)
 	tempfiles+=$patch_new$'\n'
 	cat "$patch_file" > "$patch_new"
-	if ! "$libdir"/clean_header.sh -c "$opt_commit" -r "$opt_ref" "$patch_new"; then
+	if ! "$libdir"/clean_header.sh -c "$opt_commit" -r "$opt_ref" -R "$opt_soft" "$patch_new"; then
 		quilt pop
 		cat "$patch_orig" > "$patch_file"
 		exit 1

@@ -45,7 +45,9 @@ var_override () {
 			eval "$name='$value_esc'"
 			eval "$name_src='$src_esc'"
 		elif [ "$value" != "${!name}" ]; then
-			echo "Warning: $src (\"$value\") and ${!name_src} (\"${!name}\") differ. Using $src." > /dev/stderr
+			if [ "${!name_src}" ]; then
+				echo "Warning: $src (\"$value\") and ${!name_src} (\"${!name}\") differ. Using $src." > /dev/stderr
+			fi
 			eval "$name='$value_esc'"
 			eval "$name_src='$src_esc'"
 		fi

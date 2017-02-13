@@ -2,10 +2,6 @@
 
 progname=$(basename "$0")
 libdir=$(dirname "$(readlink -f "$0")")
-opt_commit=
-opt_ref=
-filename=
-edit=
 
 export GIT_DIR=$LINUX_GIT/.git
 : ${EDITOR:=${VISUAL:=vi}}
@@ -18,17 +14,19 @@ usage () {
 	echo "Usage: $progname [options] [patch file]"
 	echo ""
 	echo "Options:"
-	echo "    -c, --commit=<refspec>  Upstream commit id used to tag the patch file."
-	echo "    -r, --reference=<bsc>   bsc or fate number used to tag the patch file."
-	echo "    -s, --skip=<domain>     Skip adding Acked-by tag if there is already an"
-	echo "                            attribution line with an email from this domain."
-	echo "                            (Can be used multiple times.)"
-	echo "    -h, --help              Print this help"
+	echo "    -c, --commit=<refspec>      Upstream commit id used to tag the patch file."
+	echo "    -r, --reference=<bsc>       bsc or fate number used to tag the patch file."
+	echo "    -R, --soft-reference=<bsc>  bsc or fate number used to tag the patch file"
+	echo "                                if no other reference is found."
+	echo "    -s, --skip=<domain>         Skip adding Acked-by tag if there is already an"
+	echo "                                attribution line with an email from this domain."
+	echo "                                (Can be used multiple times.)"
+	echo "    -h, --help                  Print this help"
 	echo ""
 }
 
 
-result=$(getopt -o c:r:s:h --long commit:,reference:,skip:,help -n "$progname" -- "$@")
+result=$(getopt -o c:r:R:s:h --long commit:,reference:,soft-reference:,skip:,help -n "$progname" -- "$@")
 if [ $? != 0 ]; then
 	echo "Error: getopt error" >&2
 	exit 1
@@ -44,6 +42,10 @@ while true ; do
 					;;
                 -r|--reference)
 					opt_ref=$2
+					shift
+					;;
+                -R|--soft-reference)
+					opt_soft=$2
 					shift
 					;;
                 -s|--skip)
@@ -219,7 +221,8 @@ header=$(echo -n "$header" | tag_remove patch-filtered)
 references=$(echo -n "$header" | tag_get --last references)
 header=$(echo -n "$header" | tag_remove --last references)
 
-# command line > References
+# command line > References > command line (soft)
+var_override ref "$opt_soft"
 var_override ref "$references" "References"
 var_override ref "$opt_ref" "command line reference"
 
