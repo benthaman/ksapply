@@ -315,9 +315,9 @@ if [ -z "$name" -o -z "$email" ]; then
 fi
 signature="$name <$email>"
 
-patterns=$opt_skip
-patterns+=($signature)
-if ! echo -n "$header" | get_attribution_names | grep -qF "$(echo ${patterns[@]} | xargs -n1)"; then
+patterns=$signature
+patterns+=($opt_skip)
+if ! echo -n "$header" | get_attribution_names | grep -qF "$(printf "%s\n" "${patterns[@]}")"; then
 	header=$(echo -n "${header%---}" | tag_add Acked-by "$signature" && echo ---)
 fi
 
