@@ -101,17 +101,25 @@ header=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_header.awk | from_extra
 
 # Git-commit:
 
-cherry=$(echo "$header" | tag_get "cherry picked from commit" | expand_git_ref)
+cherry=$(echo "$header" | tag_get "cherry picked from commit")
 if [ "$cherry" ]; then
+	if ! cherry=$(echo "$cherry" | expand_git_ref); then
+		exit 1
+	fi
 	header=$(echo -n "$header" | tag_remove "cherry picked from commit")
 fi
 
-git_commit=$(echo "$header" | tag_get git-commit | expand_git_ref)
+git_commit=$(echo "$header" | tag_get git-commit)
 if [ "$git_commit" ]; then
+	if ! git_commit=$(echo "$git_commit" | expand_git_ref); then
+		exit 1
+	fi
 	header=$(echo -n "$header" | tag_remove git-commit)
 fi
 
-opt_commit=$(echo "$opt_commit" | expand_git_ref)
+if [ "$opt_commit" ] && ! opt_commit=$(echo "$opt_commit" | expand_git_ref); then
+	exit 1
+fi
 
 # command line > Git-commit > cherry
 var_override commit "$cherry" "cherry picked from commit"

@@ -33,7 +33,12 @@ _expand_series () {
 
 		if [ -r "$file" ]; then
 			local ref
-			if ref=$(cat "$file" | tag_get git-commit | expand_git_ref); then
+
+			if ! ref=$(cat "$file" | tag_get git-commit); then
+				return 1
+			fi
+
+			if ref=$(echo "$ref" | expand_git_ref); then
 				echo "$ref $REPLY"
 			else
 				return 1

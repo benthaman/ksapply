@@ -2,7 +2,6 @@ _libdir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
 . "$_libdir"/lib.sh
 . "$_libdir"/lib_tag.sh
 
-
 # Read patch file names and output corresponding lines suitable for later
 # processing via the "series" environment var
 # _expand_am [prefix]
@@ -27,7 +26,15 @@ _expand_am () {
 
 		if [ -r "$f" ]; then
 			local ref
-			if ref=$(cat "$f" | tag_get git-commit | expand_git_ref); then
+
+			# do the lookup and expansion in separate steps so that
+			# a missing Git-commit tag results in an error from git
+			# during the expand
+			if ! ref=$(cat "$f" | tag_get git-commit); then
+				return 1
+			fi
+
+			if ref=$(echo "$ref" | expand_git_ref); then
 				echo "$ref am $f"
 			else
 				return 1
@@ -43,9 +50,13 @@ _expand_am () {
 # via the "series" environment var
 # _expand_cp
 _expand_cp () {
-	local ref
+	local list ref
 
-	expand_git_ref | while read ref; do
+	if ! list=$(expand_git_ref); then
+		return 1
+	fi
+
+	for ref in $list; do
 		echo "$ref cp $ref"
 	done
 }
