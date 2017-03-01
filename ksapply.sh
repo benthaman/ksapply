@@ -11,13 +11,17 @@ usage () {
 	echo "Usage: $progname [options] <dst \"patches.xxx\" dir>"
 	echo ""
 	echo "Options:"
-	printf "\t-p, --prefix=<prefix>       Add a prefix to the patch file name.\n"
-	printf "\t-n, --number                Keep the number prefix in the patch file name.\n"
-	printf "\t-h, --help                  Print this help\n"
+	echo "    -p, --prefix=<prefix>       Add a prefix to the patch file name."
+	echo "    -n, --number                Keep the number prefix in the patch file name."
+	echo "    -h, --help                  Print this help"
 	echo "Options passed to clean_header.sh:"
-	printf "\t-c, --commit=<refspec>      Upstream commit id used to tag the patch file.\n"
-	printf "\t-r, --reference=<bsc>       bsc or fate number used to tag the patch file.\n"
-	printf "\t-R, --soft-reference=<bsc>  bsc or fate number used to tag the patch file if no other reference is found.\n"
+	echo "    -c, --commit=<refspec>      Upstream commit id used to tag the patch file."
+	echo "    -r, --reference=<bsc>       bsc or fate number used to tag the patch file."
+	echo "    -R, --soft-reference=<bsc>  bsc or fate number used to tag the patch file"
+	echo "                                if no other reference is found."
+	echo "    -s, --skip=<domain>         Skip adding Acked-by tag if there is already an"
+	echo "                                attribution line with an email from this domain."
+	echo "                                (Can be used multiple times.)"
 	echo ""
 }
 
@@ -34,7 +38,7 @@ clean_tempfiles () {
 trap 'clean_tempfiles' EXIT
 
 
-result=$(getopt -o p:nc:r:R:h --long prefix:,number,commit:,reference:,soft-reference:,help -n "$progname" -- "$@")
+result=$(getopt -o p:nc:r:R:s:h --long prefix:,number,commit:,reference:,soft-reference:,skip:,help -n "$progname" -- "$@")
 
 if [ $? != 0 ]; then
 	echo "Error: getopt error" >&2
@@ -62,6 +66,11 @@ while true ; do
 					;;
                 -R|--soft-reference)
 					opt_soft=$2
+					shift
+					;;
+                -s|--skip)
+					opts_skip+="-s"
+					opts_skip+=($2)
 					shift
 					;;
                 -h|--help)
@@ -113,7 +122,7 @@ if patch_file=$(QUILT_PATCHES_PREFIX=1 quilt next); then
 	patch_new=$(mktemp --tmpdir ksapply-patch_new.XXXXXXXXXX)
 	tempfiles+=$patch_new$'\n'
 	cat "$patch_file" > "$patch_new"
-	if ! "$libdir"/clean_header.sh -c "$opt_commit" -r "$opt_ref" -R "$opt_soft" "$patch_new"; then
+	if ! "$libdir"/clean_header.sh -c "$opt_commit" -r "$opt_ref" -R "$opt_soft" "${opts_skip[@]}" "$patch_new"; then
 		quilt pop
 		cat "$patch_orig" > "$patch_file"
 		exit 1
