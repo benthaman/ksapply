@@ -327,8 +327,10 @@ bpdoit () {
 			return 1
 		fi
 
+		local prev_action=$(echo "$previous" | awk '{print $1}')
 		# When doing many am in sequence, only build test at the end
-		if [ "$(_bpaction)" != "am" ] && ! make -j$_jobsnb "$@"; then
+		if ! [ "$prev_action" = "am" -a "$(_bpaction)" = "am" ] &&
+			! make -j$_jobsnb "$@"; then
 			echo "The last applied commit results in a build failure. Please examine the situation." > /dev/stderr
 			return 1
 		fi
