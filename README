@@ -64,6 +64,7 @@ upstream$ cat /tmp/output | xargs -n1 git log -n1 --oneline > /tmp/list
 Optionally, check if commits in the list are referenced in the logs of later
 commits which are not in the list themselves. You may wish to review these
 later commits and add them to the list.
+
 upstream$ cat /tmp/list | check_missing_fixes.sh
 
 Optionally, check which commits in the list have already been applied to
@@ -75,10 +76,31 @@ or skip them during the backport.
 # note that the path is a pattern, not just a base directory
 kernel-source$ cat /tmp/list | refs_in_series.sh "drivers/net/ethernet/emulex/benet/*"
 
+Write to a file the list of patches in series.conf that the new commits will
+be mixed in with. These patches must have Git-commit tags.
+
+kernel-source$ vi series.conf # w /tmp/list_series
+
+Generate the reverse patch for kernel.git
+
+kernel-source$ ./scripts/sequence-patch.sh --fast
+kernel-source$ mv $(readlink -f tmp/current) tmp/base
+# edit series.conf and remove the patches that were written to list_series and
+# possibly later patches that depend on them.
+kernel-source$ ./scripts/sequence-patch.sh --fast
+kernel-source$ diff -Nurp --exclude series --exclude .pc --exclude patches --exclude .config --exclude Module.supported tmp/base tmp/current > /tmp/patch
+kernel-source$ rm -rf tmp/base
+
 ++++ Cherry-pick each desired commit to kernel.git
+kernel$ git apply -p2 < /tmp/patch
+kernel$ git add -A
+kernel$ git commit -m "revert-restore"
+kernel$ git log -n1 --oneline # will be needed later
+ccdc24086d54 revert-restore
+
 kernel$ . ~/programming/suse/ksapply/backport-mode.sh
 # note that the pattern is quoted
-kernel$ bpset "drivers/net/ethernet/emulex/benet/*" < /tmp/output
+kernel$ bpset -s -p ../kernel-source/ -a /tmp/list_series -c /tmp/list2 "drivers/net/ethernet/emulex/benet/*"
 
 # examine the next commit using the following commands
 bpref
@@ -111,9 +133,13 @@ where it stopped. To speed things up, `make` is called with a target
 directory, which is the argument.
 bpdoit drivers/net/ethernet/emulex/benet/
 
-kernel$ git format-patch -o /tmp/patches/sp3 origin/SLE12
+kernel$ git format-patch -o /tmp/patches/sp3 ccdc24086d54
 
 ++ Import the patch set into kernel-source.git
+Temporarily remove the patches that will be replaced.
+
+kernel-source$ git diff series.conf | grep "^-[[:space:]]" | awk '{print $2}' | xargs rm
+
 Check series.conf to find where the patch set will go and note the last patch
 before that (ex:
 "patches.drivers/IB-0004-mlx4-Configure-extended-active-speeds.patch") and the
@@ -123,13 +149,12 @@ kernel-source$ ./scripts/sequence-patch.sh patches.drivers/IB-0004-mlx4-Configur
 kernel-source$ cd tmp/current
 kernel-source/tmp/current$ quilt import /tmp/patches/sp3/*
 kernel-source/tmp/current$ while ! ( quilt next | grep -q iwlwifi-sp1-compatible-options) &&
-	ksapply.sh -r "bnc#790588 FATE#313912" -p tg3 -n patches.drivers/; do true; done
+	ksapply.sh -R "bnc#790588 FATE#313912" -s suse.com patches.drivers/; do true; done
 kernel-source/tmp/current$ cd ../../
-kernel-source$ git status
-[...]
 
-Add the patches to series.conf. If some patches depend on patches that change
-core networking components, move them from patches.drivers to patches.fixes.
+Copy the new entries to their desired location in series.conf
+
+kernel-source/tmp/current$ vi -p series.conf tmp/current/series
 
 kernel-source$ git add -A
 kernel-source$ scripts/log
