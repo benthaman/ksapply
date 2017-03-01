@@ -35,12 +35,14 @@ _expand_series () {
 			local ref
 
 			if ! ref=$(cat "$file" | tag_get git-commit); then
+				echo "Error: while getting Git-commit from $file" > /dev/stderr
 				return 1
 			fi
 
 			if ref=$(echo "$ref" | expand_git_ref); then
 				echo "$ref $REPLY"
 			else
+				echo "Error: while expanding Git-commit from $file" > /dev/stderr
 				return 1
 			fi
 		elif echo "$entry" | grep -q "^[^#]"; then
@@ -95,7 +97,11 @@ if [ ! -d "$LINUX_GIT" ] || ! GIT_DIR=$LINUX_GIT/.git git log -n1 > /dev/null; t
 fi
 export GIT_DIR=$LINUX_GIT/.git 
 
-_expand_series "$opt_prefix" | git sort | awk '
+if ! list=$(_expand_series "$opt_prefix"); then
+	exit 1
+fi
+
+echo "$list" | git sort | awk '
 	{
 		print substr($0, 42)
 	}
