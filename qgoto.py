@@ -9,6 +9,7 @@ sub-series is ordered 2) tells where to insert.
 
 from __future__ import print_function
 
+import argparse
 import os
 import os.path
 import pygit2
@@ -20,6 +21,12 @@ import lib_tag
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Print the quilt push or pop command required to reach the "
+        "position where the specified commit should be imported.")
+    parser.add_argument("refspec", help="Upstream commit id.")
+    args = parser.parse_args()
+
     if not lib.check_series():
         sys.exit(1)
 
@@ -34,7 +41,7 @@ if __name__ == "__main__":
     if "GIT_DIR" not in os.environ:
         os.environ["GIT_DIR"] = repo_path
     repo = pygit2.Repository(repo_path)
-    new_hash = str(repo.revparse_single(sys.argv[1]).id)
+    new_hash = str(repo.revparse_single(args.refspec).id)
 
     # remove "patches/" prefix
     top = subprocess.check_output(("quilt", "top",),
