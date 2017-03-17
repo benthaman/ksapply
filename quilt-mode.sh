@@ -3,6 +3,16 @@ _libdir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
 
 alias q=quilt
 
+_switcheroo () {
+	if [ -r series ] &&
+		head -n1 series | grep -qv "^# Kernel patches configuration file$" &&
+		[ -r patches/series.conf ] &&
+		head -n1 patches/series.conf | grep -q "^# Kernel patches configuration file$"; then
+		ln -sf patches/series.conf series
+	fi
+}
+_switcheroo
+
 
 qfmake () {
 	local targets i
@@ -70,16 +80,25 @@ qcp () {
 
 # Save -r and -d for later use by qcp
 _saveopts () {
-	local result=$(getopt -o r:d: --long references:,destination: -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
+	local result=$(getopt -o hr:d: --long help,references:,destination: -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
 	if [ $? != 0 ]; then
 		echo "Error: getopt error" >&2
-		exit 1
+		return 1
 	fi
 
 	eval set -- "$result"
 
 	while true ; do
 		case "$1" in
+			-h|--help)
+				echo "Usage: ${FUNCNAME[1]} [options]"
+				echo ""
+				echo "Options:"
+				echo "    -r, --references <value>    bsc# or FATE# number used to tag the patch file."
+				echo "    -d, --destination <dir>     Destination \"patches.xxx\" directory."
+				echo "    -h, --help                  Print this help"
+				return 1
+				;;
 			-r|--references)
 				_references=$2
 				shift
@@ -94,7 +113,7 @@ _saveopts () {
 				;;
 			*)
 				echo "Error: could not parse arguments" >&2
-				exit 1
+				return 1
 				;;
 		esac
 		shift
@@ -111,10 +130,12 @@ qadd () {
 
 	if [ ! -d "$LINUX_GIT" ] || ! GIT_DIR="$LINUX_GIT"/.git git log -n1 > /dev/null; then
 		echo "Error: kernel git tree not found at \"$LINUX_GIT\" (check the LINUX_GIT environment variable)" > /dev/stderr
-		exit 1
+		return 1
 	fi
 
-	_saveopts
+	if ! _saveopts "$@"; then
+		return
+	fi
 
 	local _series=$(grep .)
 
@@ -130,10 +151,8 @@ qadd () {
 qedit () {
 	if [ ! -d "$LINUX_GIT" ] || ! GIT_DIR="$LINUX_GIT"/.git git log -n1 > /dev/null; then
 		echo "Error: kernel git tree not found at \"$LINUX_GIT\" (check the LINUX_GIT environment variable)" > /dev/stderr
-		exit 1
+		return 1
 	fi
-
-	_saveopts
 
 	if [ "${tmpfile+set}" = "set" ]; then
 		local _tmpfile=$tmpfile
@@ -213,7 +232,7 @@ qdoit () {
 		done
 
 		if ! qdupcheck $entry; then
-			echo "The next commit is already present in series. Please examine the situation." > /dev/stderr
+			echo "The next commit is already present in the series. Please examine the situation." > /dev/stderr
 			return 1
 		fi
 
