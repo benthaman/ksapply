@@ -88,22 +88,22 @@ if __name__ == "__main__":
               file=sp.stdin)
     print("%s insert" % (new_hash,), file=sp.stdin)
     sp.stdin.close()
-    series = [l.strip() for l in sp.stdout.readlines()]
+    series = sp.stdout.readlines()
     sp.wait()
     if sp.returncode != 0:
         print("Error: git sort exited with an error", file=sys.stderr)
-        print("\n".join(series), file=sys.stderr)
+        print("".join(series), file=sys.stderr)
         sys.exit(1)
 
     current = None
     insert = None
     for num in range(len(series)):
         line = series[num]
-        if line.endswith("insert"):
+        if line.endswith("insert\n"):
             insert = num
             if current is not None:
                 break
-        elif line.endswith("current"):
+        elif line.endswith("current\n"):
             current = num
             if insert is not None:
                 break
