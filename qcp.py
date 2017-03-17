@@ -27,7 +27,7 @@ def doit(references, tmpdir, dstdir, ref, poi=[]):
     path = os.path.join("patches", dst)
     action = "import"
     if os.path.exists(path):
-        if lib_tag.tag_get(path, "Git-commit")[0] == ref:
+        if lib.firstword(lib_tag.tag_get(path, "Git-commit")[0]) == ref:
             top = subprocess.check_output(
                 ("quilt", "top",), preexec_fn=lib.restore_signals).strip()
             if top == path:

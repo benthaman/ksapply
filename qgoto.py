@@ -69,10 +69,9 @@ if __name__ == "__main__":
               file=sys.stderr)
         sys.exit(1)
 
-    top_hashes = lib_tag.tag_get(os.path.join("patches", top), "Git-commit")
-    if new_hash in top_hashes:
-        print("Nothing to do.", file=sys.stderr)
-        print("Commit \"%s\" can be folded." % (new_hash,), file=sys.stderr)
+    # shortcut if we're already at the right position
+    if new_hash in [lib.firstword(v) for v in
+        lib_tag.tag_get(os.path.join("patches", top), "Git-commit")]:
         sys.exit(2)
 
     sp = subprocess.Popen(("git", "sort",), stdin=subprocess.PIPE,
@@ -83,9 +82,10 @@ if __name__ == "__main__":
             current = " current"
         else:
             current = ""
-        print("%s%s" % (lib_tag.tag_get(os.path.join("patches", p),
-                                        "Git-commit")[0], current,),
-              file=sp.stdin)
+        print("%s%s" % (
+            lib.firstword(
+                lib_tag.tag_get(os.path.join("patches", p), "Git-commit")[0]),
+            current,), file=sp.stdin)
     print("%s insert" % (new_hash,), file=sp.stdin)
     sp.stdin.close()
     series = sp.stdout.readlines()
