@@ -20,6 +20,21 @@ import lib
 import lib_tag
 
 
+def cat_subseries():
+    inside = False
+    for line in open("series"):
+        line = line.strip()
+        if inside:
+            if line == "# Wireless Networking":
+                return
+
+            if line and not line[0] in ("#", "-", "+",):
+                yield line
+        elif line == "# SLE12-SP3 network driver updates":
+            inside = True
+            continue
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Print the quilt push or pop command required to reach the "
@@ -35,7 +50,8 @@ if __name__ == "__main__":
     elif "LINUX_GIT" in os.environ:
         search_path = os.environ["LINUX_GIT"]
     else:
-        print("Error: \"LINUX_GIT\" environment variable not set.", file=sys.stderr)
+        print("Error: \"LINUX_GIT\" environment variable not set.",
+              file=sys.stderr)
         sys.exit(1)
     repo_path = pygit2.discover_repository(search_path)
     if "GIT_DIR" not in os.environ:
@@ -47,20 +63,7 @@ if __name__ == "__main__":
     top = subprocess.check_output(("quilt", "top",),
                                   preexec_fn=lib.restore_signals).strip()[8:]
 
-    series = []
-    inside = False
-    for line in open("patches/series.conf"):
-        line = line.strip()
-        if inside:
-            if line == "# Wireless Networking":
-                break
-
-            if line and not line[0] in ("#", "-", "+",):
-                series.append(line)
-        elif line == "# SLE12-SP3 network driver updates":
-            inside = True
-            next
-
+    series = list(cat_subseries())
     if top not in series:
         print("Error: top patch \"%s\" not in sub-series" % (top,),
               file=sys.stderr)
