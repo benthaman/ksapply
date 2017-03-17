@@ -162,17 +162,18 @@ qcat () {
 
 
 qnext () {
-	[ ${#series[@]} -gt 0 ] && echo "${series[0]}"
+	[ ${#series[@]} -gt 0 ] && echo "${series[0]}" |
+		sed -re 's/^[[:space:]]+//'
 }
 
 
 qskip () {
 	if [ ${#series[@]} -gt 0 ]; then
-		entry=${series[0]}
+		local entry=${series[0]}
 		series=("${series[@]:1}")
-		echo "Skipped: $entry"
+		echo "Skipped: ${entry##[ 	]}"
 		if [ ${#series[@]} -gt 0 ]; then
-			echo "Next: ${series[0]}"
+			echo "Next:    ${series[0]##[ 	]}"
 		else
 			echo "No more entries"
 		fi
