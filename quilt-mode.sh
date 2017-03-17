@@ -24,6 +24,11 @@ qgoto () {
 }
 
 
+qdupcheck () {
+	"$_libdir"/qdupcheck.py "$@"
+}
+
+
 #unset _references _destination
 qcp () {
 	# capture and save some options
@@ -97,7 +102,7 @@ _saveopts () {
 }
 
 
-unset series
+#unset series
 qadd () {
 	if [ $BASH_SUBSHELL -gt 0 ]; then
 		echo "Error: it looks like this function is being run in a subshell. It will not be effective because its purpose is to set an environment variable. You could run it like this instead: \`${FUNCNAME[0]} <<< \$(<cmd>)\`." > /dev/stderr
@@ -184,12 +189,13 @@ qskip () {
 
 
 qdoit () {
-	entry=$(qnext | awk '{print $1}')
+	local entry=$(qnext | awk '{print $1}')
 	while [ "$entry" ]; do
-		command=$("$_libdir"/qgoto.py "$entry" 2> /dev/null)
+		local command retval
+		command=$("$_libdir"/qgoto.py "$entry")
 		retval=$?
 		if [ $retval -eq 1 ]; then
-			echo "Error: qgoto.py reported an error" > /dev/stderr
+			echo "Error: qgoto.py exited with an error" > /dev/stderr
 			return 1
 		fi
 		while [ $retval -ne 2 ]; do
@@ -198,23 +204,24 @@ qdoit () {
 				return 1
 			fi
 
-			command=$("$_libdir"/qgoto.py $entry 2> /dev/null)
+			command=$("$_libdir"/qgoto.py $entry)
 			retval=$?
 			if [ $retval -eq 1 ]; then
-				echo "Error: qgoto.py reported an error" > /dev/stderr
+				echo "Error: qgoto.py exited with an error" > /dev/stderr
 				return 1
 			fi
 		done
 
-		qcp $entry
-		retval=$?
-		if [ $retval -ne 1 ]; then
-			series=("${series[@]:1}")
+		if ! qdupcheck $entry; then
+			echo "The next commit is already present in series. Please examine the situation." > /dev/stderr
+			return 1
 		fi
-		if [ $retval -ne 0 ]; then
+
+		if ! qcp $entry; then
 			echo "\`qcp $entry\` did not complete sucessfully. Please examine the situation." > /dev/stderr
 			return 1
 		fi
+		series=("${series[@]:1}")
 
 		if ! quilt push; then
 			echo "The last commit did not apply successfully. Please examine the situation." > /dev/stderr

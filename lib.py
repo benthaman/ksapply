@@ -26,3 +26,14 @@ def check_series():
 
 def firstword(value):
     return value.split(None, 1)[0]
+
+
+# Beware that this returns an iterator, not a list
+def cat_series():
+    for line in open("series"):
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith(("#", "-", "+",)):
+            continue
+        yield firstword(line)

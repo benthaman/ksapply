@@ -57,7 +57,7 @@ if __name__ == "__main__":
     if "GIT_DIR" not in os.environ:
         os.environ["GIT_DIR"] = repo_path
     repo = pygit2.Repository(repo_path)
-    new_hash = str(repo.revparse_single(args.refspec).id)
+    ref = str(repo.revparse_single(args.refspec).id)
 
     # remove "patches/" prefix
     top = subprocess.check_output(("quilt", "top",),
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # shortcut if we're already at the right position
-    if new_hash in [lib.firstword(v) for v in
+    if ref in [lib.firstword(v) for v in
         lib_tag.tag_get(os.path.join("patches", top), "Git-commit")]:
         sys.exit(2)
 
@@ -86,7 +86,7 @@ if __name__ == "__main__":
             lib.firstword(
                 lib_tag.tag_get(os.path.join("patches", p), "Git-commit")[0]),
             current,), file=sp.stdin)
-    print("%s insert" % (new_hash,), file=sp.stdin)
+    print("%s insert" % (ref,), file=sp.stdin)
     sp.stdin.close()
     series = sp.stdout.readlines()
     sp.wait()
@@ -108,19 +108,9 @@ if __name__ == "__main__":
             if insert is not None:
                 break
 
-    result = 0
     if insert < current:
         print("pop %d" % (current - insert,))
     elif insert == current + 1:
-        print("Nothing to do.", file=sys.stderr)
-        result = 2
+        sys.exit(2)
     else:
         print("push %d" % (insert - (current + 1),))
-
-    if insert == 0 or new_hash != series[insert - 1].split()[0]:
-        action = "imported"
-    else:
-        action = "folded"
-    print("Commit \"%s\" can be %s." % (new_hash, action,), file=sys.stderr)
-
-    sys.exit(result)
