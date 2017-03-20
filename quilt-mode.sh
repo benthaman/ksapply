@@ -207,19 +207,22 @@ qcat () {
 }
 
 
+_strip_begin () {
+	sed -re 's/^[[:space:]]+//'
+}
+
+
 qnext () {
-	[ ${#series[@]} -gt 0 ] && echo "${series[0]}" |
-		sed -re 's/^[[:space:]]+//'
+	[ ${#series[@]} -gt 0 ] && echo "${series[0]}" | _strip_begin
 }
 
 
 qskip () {
 	if [ ${#series[@]} -gt 0 ]; then
-		local entry=${series[0]}
+		echo "Skipped:    $(echo "${series[0]}" | _strip_begin)"
 		series=("${series[@]:1}")
-		echo "Skipped: ${entry##[ 	]}"
 		if [ ${#series[@]} -gt 0 ]; then
-			echo "Next:    ${series[0]##[ 	]}"
+			echo "Next:       $(echo "${series[0]}" | _strip_begin)"
 		else
 			echo "No more entries"
 		fi
