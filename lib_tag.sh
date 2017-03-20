@@ -3,8 +3,8 @@ countkeys () {
 	local key=$1
 
 	case "${key,,*}" in
-	"cherry picked from commit")
-		grep -iF "(cherry picked from commit " | wc -l
+	"cherry picked from commit" | "cherry picked for")
+		grep "^($key .*)$" | wc -l
 		;;
 	*)
 		grep -i "^$key: " | wc -l
@@ -79,6 +79,19 @@ tag_get () {
 
 			insubject {
 				print result
+				exit
+			}
+		' <<< "$header"
+		;;
+	"cherry picked from commit" | "cherry picked for")
+		awk --assign nb="$nb" '
+		/^\('"$key"' .*\)$/ {
+				nb--
+				if (nb > 0) {
+					next
+				}
+				match($0, "^\\('"$key"' (.*)\\)$", a)
+				print a[1]
 				exit
 			}
 		' <<< "$header"
@@ -161,6 +174,20 @@ tag_remove () {
 
 			insubject {
 				insubject = 0
+			}
+
+			{
+				print
+			}
+		'
+		;;
+	"cherry picked from commit" | "cherry picked for")
+		echo -n "${header%---}" | awk --assign nb="$nb" '
+		/^\('"$key"' .*\)$/ {
+				nb--
+				if (nb == 0) {
+					next
+				}
 			}
 
 			{
@@ -322,23 +349,25 @@ tag_add () {
 			}
 		'
 		;;
-	acked-by | signed-off-by | "cherry picked from commit")
-		local line
+	acked-by | signed-off-by)
+		local line="$key: $value"
 		local header=$(cat && echo ---)
 
-		if [ "${key,,*}" = "cherry picked from commit" ]; then
-			local nb=$(countkeys "$key" <<< "$header")
-			if [ $nb -gt 0 ]; then
-				echo "Error: key \"$key\" already present." > /dev/stderr
-				exit 1
-			fi
+		echo -n "${header%---}" | _append_attribution "$line"
+		;;
+	"cherry picked from commit" | "cherry picked for")
+		local line
+		local header=$(cat && echo ---)
+		local nb=$(countkeys "$key" <<< "$header")
 
-			line="(cherry picked from commit $value)"
-		else
-			line="$key: $value"
+		if [ $nb -gt 0 ]; then
+			echo "Error: key \"$key\" already present." > /dev/stderr
+			exit 1
 		fi
 
-		echo -n "${header%---}" | append_attribution "$line"
+		line="($key $value)"
+
+		echo -n "${header%---}" | _append_attribution "$line"
 		;;
 	*)
 		echo "Error: I don't know where to add a tag of type \"$key\"." > /dev/stderr
@@ -365,8 +394,8 @@ get_attribution_names () {
 	'
 }
 
-# append_attribution <attribution line>
-append_attribution () {
+# _append_attribution <attribution line>
+_append_attribution () {
 	local line=$1
 
 	awk --assign line="$line" '
@@ -406,6 +435,14 @@ append_attribution () {
 			attribseen = 1
 		}
 
+		/^\(cherry picked from commit [[:xdigit:]]{6,})$/ {
+			attribseen = 1
+		}
+
+		/^\(cherry picked for .*)$/ {
+			attribseen = 1
+		}
+
 		!added && /^---$/ {
 			print_attribution(attribseen, line, 1)
 		}
@@ -431,6 +468,7 @@ append_attribution () {
 }
 
 # insert_attributions <attribution lines>
+# Add multiple attribution lines
 insert_attributions () {
 	local attrs=$1
 	local header=$(cat && echo ---)
@@ -447,7 +485,7 @@ insert_attributions () {
 		'
 	else
 		while read attribution; do
-			header=$(echo -n "${header%---}" | append_attribution "$attribution" && echo ---)
+			header=$(echo -n "${header%---}" | _append_attribution "$attribution" && echo ---)
 		done <<< "$attrs"
 
 		echo -n "${header%---}"

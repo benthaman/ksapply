@@ -101,18 +101,20 @@ header=$(echo -n "${patch%---}" | awk -f "$libdir"/patch_header.awk | from_extra
 
 # Git-commit:
 
-cherry=$(echo "$header" | sed -nre 's/.*\(cherry picked from commit ([0-9a-f]+)\).*/\1/p' | expand_git_ref)
-if [ -n "$cherry" ]; then
-	header=$(echo -n "$header" | awk -f "$libdir/clean_cherry.awk")
+cherry=$(echo "$header" | tag_get "cherry picked from commit" | expand_git_ref)
+if [ "$cherry" ]; then
+	header=$(echo -n "$header" | tag_remove "cherry picked from commit")
 fi
 
 git_commit=$(echo "$header" | tag_get git-commit | expand_git_ref)
-header=$(echo -n "$header" | tag_remove git-commit)
+if [ "$git_commit" ]; then
+	header=$(echo -n "$header" | tag_remove git-commit)
+fi
 
 opt_commit=$(echo "$opt_commit" | expand_git_ref)
 
 # command line > Git-commit > cherry
-var_override commit "$cherry" "cherry picked commit"
+var_override commit "$cherry" "cherry picked from commit"
 var_override commit "$git_commit" "Git-commit"
 var_override commit "$opt_commit" "command line commit"
 
@@ -218,11 +220,19 @@ header=$(echo -n "$header" | tag_remove patch-filtered)
 
 # References:
 
-references=$(echo -n "$header" | tag_get --last references)
-header=$(echo -n "$header" | tag_remove --last references)
+cherry=$(echo "$header" | tag_get "cherry picked for")
+if [ "$cherry" ]; then
+	header=$(echo -n "$header" | tag_remove "cherry picked for")
+fi
 
-# command line > References > command line (soft)
+references=$(echo -n "$header" | tag_get --last references)
+if [ "$references" ]; then
+	header=$(echo -n "$header" | tag_remove --last references)
+fi
+
+# command line > References > cherry > command line (soft)
 var_override ref "$opt_soft"
+var_override ref "$cherry" "cherry picked for"
 var_override ref "$references" "References"
 var_override ref "$opt_ref" "command line reference"
 
