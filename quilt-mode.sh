@@ -15,10 +15,27 @@ _switcheroo
 
 
 qfmake () {
-	local targets i
+	local targets new_target
 
-	for i in "$@" $(quilt files | sed -n -e 's/.c$/.o/p'); do
-		targets+=("$i")
+	# filter targets to remove elements that are included under other
+	# elements
+	for new_target in "$@" $(quilt files | sed -n -e 's/.c$/.o/p'); do
+		local i add=1
+		for i in $(seq 0 $((${#targets[@]} - 1))); do
+			local target=${targets[i]}
+			# new_target is under target
+			if echo "$new_target" | grep -q '^'"$target"; then
+				add=
+				break
+			# target is under new_target
+			elif echo "$target" | grep -q '^'"$new_target"; then
+				# remove targets[i]
+				targets=("${targets[@]:0:$i}" "${targets[@]:$((i + 1))}")
+			fi
+		done
+		if [ "$add" ]; then
+			targets+=("$new_target")
+		fi
 	done
 
 	if [ ${#targets[@]} -gt 0 ]; then
