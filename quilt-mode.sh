@@ -27,6 +27,11 @@ qfmake () {
 }
 
 
+qf1 () {
+	cat $(quilt top)
+}
+
+
 qgoto () {
 	if command=$("$_libdir"/qgoto.py "$@"); then
 		quilt $command
