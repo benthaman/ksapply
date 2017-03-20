@@ -3,48 +3,193 @@ _libdir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
 . "$_libdir"/lib_tag.sh
 
 
-# read a list of commits and set it in a "series" environment variable
-# bpset [path of interest for cherry-pick...]
+# Read patch file names and output corresponding lines suitable for later
+# processing via the "series" environment var
+# _expand_am [prefix]
+_expand_am () {
+	local prefix
+
+	if [ -d "$1" ]; then
+		prefix=$(readlink -f "$1")
+	elif [ "$1" ]; then
+		echo "Error: not a directory \"$1\"" > /dev/stderr
+		return 1
+	fi
+
+	local p
+	while read p; do
+		local f
+		if [ "$prefix" ]; then
+			f="$prefix/$p"
+		else
+			f=$p
+		fi
+
+		if [ -r "$f" ]; then
+			local ref
+			if ref=$(cat "$f" | tag_get git-commit | expand_git_ref); then
+				echo "$ref am $f"
+			else
+				return 1
+			fi
+		elif echo "$p" | grep -q "^[^#]"; then
+			echo "Error: cannot read \"$f\"" > /dev/stderr
+			return 1
+		fi
+	done
+}
+
+# Read commit refs and output corresponding lines suitable for later processing
+# via the "series" environment var
+# _expand_cp
+_expand_cp () {
+	local ref
+
+	expand_git_ref | while read ref; do
+		echo "$ref cp $ref"
+	done
+}
+
+# Read lists of patches and commits and set them in a "series" environment
+# variable. If no file is specified using options, read stdin as a list of
+# commits to cherry-pick.
+# bpset [options] [path of interest for cherry-pick...]
+# Options:
+#    -p, --prefix=<dir>    Search for patches in this directory
+#    -a, --am=<file>       Also read a list of patches to apply from FILE 
+#    -c, --cp=<file>       Also read a list of commits to cherry-pick from FILE
+#    -s, --sort            Sort resulting series according to upstream order
 bpset () {
 	if [ $BASH_SUBSHELL -gt 0 ]; then
 		echo "Error: it looks like this function is being run in a subshell. It will not be effective because its purpose is to set an environment variable. You could run it like this instead: \`${FUNCNAME[0]} <<< \$(<cmd>)\`." > /dev/stderr
 		return 1
 	fi
+
+	local opt_prefix opt_sort
+	local _series opts
+	local result=$(getopt -o p:a:c:s --long prefix:,am:,cp:,sort -n "${BASH_SOURCE[0]}:${FUNCNAME[0]}()" -- "$@")
+
+	if [ $? != 0 ]; then
+		echo "Error: getopt error" >&2
+		exit 1
+	fi
+
+	eval set -- "$result"
+
+	while true ; do
+		case "$1" in
+			-p|--prefix)
+				opt_prefix=$2
+				shift
+				;;
+			-a|--am)
+				if ! _series=$(echo "$_series"; cat "$2" | _expand_am "$opt_prefix"); then
+					return 1
+				fi
+				opts=1
+				shift
+				;;
+			-c|--cp)
+				if ! _series=$(echo "$_series"; cat "$2" | _expand_cp); then
+					return 1
+				fi
+				opts=1
+				shift
+				;;
+			-s|--sort)
+				opt_sort=1
+				;;
+			--)
+				shift
+				break
+				;;
+			*)
+				echo "Error: could not parse arguments" >&2
+				exit 1
+				;;
+		esac
+		shift
+	done
+
 	paths_of_interest=$(
 		for arg in "$@"; do
 			echo "$arg"
 		done
 	)
-	local _series
-	if _series=$(cat | expand_git_ref); then
-		series=$_series
-	else
+
+	# if options were empty, read from stdin
+	if [ -z "$opts" ] && ! _series=$(cat | _expand_cp); then
 		return 1
+	fi
+	if [ "$opt_sort" ]; then
+		_series=$(echo "$_series" | git sort)
+	fi
+	series=$(echo "$_series" | cut -d" " -f 2-)
+}
+
+bpref () {
+	if [ -n "$series" ]; then
+		set -- $(echo "$series" | head -n1)
+		case "$1" in
+			cp)
+				echo $2
+				;;
+			am)
+				cat "$2" | tag_get git-commit | expand_git_ref
+				;;
+		esac
+	fi
+}
+
+_bpaction () {
+	if [ -n "$series" ]; then
+		awk '{print $1; exit}' <<< "$series"
+	fi
+}
+
+_bparg () {
+	if [ -n "$series" ]; then
+		awk '{print $2; exit}' <<< "$series"
 	fi
 }
 
 # show the first entry in the series
 bpnext () {
 	if [ -n "$series" ]; then
-		git log -n1 --oneline $(echo "$series" | head -n1)
+		local ref=$(bpref)
+
+		echo "$series" | head -n1
+		git log -n1 --oneline $ref
 	fi
 }
 alias bptop=bpnext
 
-bpref () {
-	echo "$series" | head -n1
-}
-
 bpstat () {
-	if [ -n "$series" ]; then
-		git log -n1 --stat $(echo "$series" | head -n1)
-	fi
+	local action=$(_bpaction)
+
+	case "$action" in
+		am)
+			git apply --stat < $(_bparg)
+			;;
+		cp)
+			local ref=$(bpref)
+
+			git diff --stat $ref^..$ref
+			;;
+	esac
 }
 
 bpf1 () {
-	if [ -n "$series" ]; then
-		git f1 $(echo "$series" | head -n1)
-	fi
+	local action=$(_bpaction)
+
+	case "$action" in
+		am)
+			cat $(_bparg)
+			;;
+		cp)
+			git f1 $(bpref)
+			;;
+	esac
 }
 
 bpskip () {
@@ -52,18 +197,49 @@ bpskip () {
 		echo "Error: it looks like this function is being run in a subshell. It will not be effective because its purpose is to set an environment variable." > /dev/stderr
 		return 1
 	fi
-	previous=$(bpref)
+	previous=$(echo "$series" | head -n1)
 	series=$(awk 'NR > 1 {print}' <<< "$series")
 }
 
 bpcherry-pick-all () {
+	local action=$(_bpaction)
+	local arg=$(_bparg)
 	bpskip
-	git cherry-pick -x $previous
+
+	case "$action" in
+		am)
+			if git am --reject $arg; then
+				bpaddtag
+			else
+				return $?
+			fi
+			;;
+		cp)
+			git cherry-pick -x $arg
+			;;
+	esac
 }
 alias bpcp=bpcherry-pick-all
 
 bpaddtag () {
-	git log -n1 --pretty=format:%B | tag_add "cherry picked from commit" "$previous" | git commit -q --amend -F -
+	local action=$(echo "$previous" | awk '{print $1}')
+	local arg=$(echo "$previous" | awk '{print $2}')
+	case $action in
+		cp)
+			git log -n1 --pretty=format:%B | \
+				tag_add "cherry picked from commit" "$arg" | \
+				git commit -q --amend -F -
+			;;
+		am)
+			local ref=$(cat "$arg" | tag_get git-commit | expand_git_ref)
+			local suse_ref=$(cat "$arg" | tag_get references)
+
+			git log -n1 --pretty=format:%B | \
+				tag_add "cherry picked from commit" "$ref" | \
+				tag_add "cherry picked for" "$suse_ref" | \
+				git commit -q --amend -F -
+			;;
+	esac
 }
 
 # bpcherry-pick-include <path...>
@@ -77,15 +253,27 @@ bpcherry-pick-include () {
 		done <<< "$paths_of_interest"
 	)
 	args=$(echo "$args" | xargs -d"\n")
-
+	local action=$(_bpaction)
+	local arg=$(_bparg)
 	bpskip
-	local patch=$(git format-patch --stdout $previous^..$previous)
-	local files=$(echo "$patch" | eval "git apply --numstat $args" | cut -f3)
-	if echo "$patch" | eval "git apply --reject $args"; then
-		echo "$files" | xargs -d"\n" git add 
-		git commit -C $previous
-		bpaddtag
-	fi
+	case $action in
+		cp)
+			local patch=$(git format-patch --stdout $arg^..$arg)
+			local files=$(echo "$patch" | \
+				eval "git apply --numstat $args" | cut -f3)
+
+			if echo "$patch" | eval "git apply --reject $args"; then
+				echo "$files" | xargs -d"\n" git add 
+				git commit -C $arg
+				bpaddtag
+			fi
+			;;
+		am)
+			if git am --reject $args "$arg"; then
+				bpaddtag
+			fi
+			;;
+	esac
 }
 alias bpcpi=bpcherry-pick-include
 
@@ -117,7 +305,7 @@ bpdoit () {
 	fi
 
 	while [ $(bpref) ]; do
-		if ! git format-patch --stdout $(bpref)^..$(bpref) | _poicheck; then
+		if [ "$(_bpaction)" = "cp" ] && ! git format-patch --stdout $(bpref)^..$(bpref) | _poicheck; then
 			echo "The following commit touches paths outside of the paths of interest. Please examine the situation." > /dev/stderr
 			bpnext > /dev/stderr
 			return 1
@@ -128,7 +316,8 @@ bpdoit () {
 			return 1
 		fi
 
-		if ! make -j$_jobsnb "$@"; then
+		# When doing many am in sequence, only build test at the end
+		if [ "$(_bpaction)" != "am" ] && ! make -j$_jobsnb "$@"; then
 			echo "The last applied commit results in a build failure. Please examine the situation." > /dev/stderr
 			return 1
 		fi
