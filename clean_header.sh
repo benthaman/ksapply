@@ -142,8 +142,10 @@ if [ -z "$commit" ]; then
 			echo "$log_grep" | awk -F$'\t' '{print $1 "   " $2 "   " $3}'
 		fi
 		read -p "(<refspec>/empty cancels): " prompt_commit
-		prompt_commit=$(echo "$prompt_commit" | expand_git_ref)
-		var_override commit "$prompt_commit" "prompted commit"
+		if [ "$prompt_commit" ]; then
+			prompt_commit=$(echo "$prompt_commit" | expand_git_ref)
+			var_override commit "$prompt_commit" "prompted commit"
+		fi
 	fi
 fi
 
