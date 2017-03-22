@@ -161,12 +161,12 @@ qadd () {
 
 	local _series=$(grep .)
 
-	mapfile -t series <<< $(
+	mapfile -t series <<< "$(
 		(
 			[ ${#series[@]} -gt 0 ] && printf "%s\n" "${series[@]}"
 			[ -n "$_series" ] && echo "$_series"
 		) | GIT_DIR="$LINUX_GIT"/.git git sort
-	)
+	)"
 }
 
 
@@ -186,7 +186,7 @@ qedit () {
 
 	${EDITOR:-${VISUAL:-vi}} "$tmpfile"
 
-	mapfile -t series <<< $(grep . "$tmpfile" | GIT_DIR="$LINUX_GIT"/.git git sort)
+	mapfile -t series <<< "$(grep . "$tmpfile" | GIT_DIR="$LINUX_GIT"/.git git sort)"
 
 	if [ -z "${series[0]}" ]; then
 		unset series[0]
