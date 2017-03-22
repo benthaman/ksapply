@@ -167,6 +167,10 @@ qadd () {
 			[ -n "$_series" ] && echo "$_series"
 		) | GIT_DIR="$LINUX_GIT"/.git git sort
 	)"
+
+	if [ -z "${series[0]}" ]; then
+		unset series[0]
+	fi
 }
 
 
