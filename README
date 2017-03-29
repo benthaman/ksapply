@@ -22,10 +22,20 @@ refs_in_series.sh
 	Check if a commit is already part of a branch in kernel-source.git
 	Useful to check if a list of commits have already been backported to
 	our kernel.
-series_sort.sh
-	Wrapper script around git sort
-        (https://github.com/benthaman/git-helpers) to sort series.conf lines
-	according to the upstream order of commits that the patches backport.
+series_sort.py
+	Script to sort series.conf lines according to the upstream order of
+	commits that the patches backport.
+	This script requires git-sort from the git-helpers repository
+	(https://github.com/benthaman/git-helpers).
+	After cloning the current repository, run
+		git submodule init
+		git submodule update
+	A convenient way to use series_sort.py to filter a subset of lines
+	within series.conf when using the vim text editor is to visually
+	select the lines and filter them through the script:
+		shift-v
+		j j j j [...] # or ctrl-d or /pattern<enter>
+		:'<,'>! ~/<path>/series_sort.py
 quilt-mode.sh
 	Contains a set of shell functions to assist in backporting upstream
 	commits to kernel-source.git.
