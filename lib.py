@@ -3,6 +3,8 @@
 
 from __future__ import print_function
 
+import os
+import pygit2
 import signal
 import sys
 
@@ -37,3 +39,15 @@ def cat_series():
         if line.startswith(("#", "-", "+",)):
             continue
         yield firstword(line)
+
+
+def repo_path():
+    if "GIT_DIR" in os.environ:
+        search_path = os.environ["GIT_DIR"]
+    elif "LINUX_GIT" in os.environ:
+        search_path = os.environ["LINUX_GIT"]
+    else:
+        print("Error: \"LINUX_GIT\" environment variable not set.",
+              file=sys.stderr)
+        sys.exit(1)
+    return pygit2.discover_repository(search_path)
