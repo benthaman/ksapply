@@ -25,7 +25,7 @@ refs_in_series.sh
 series_sort.sh
 	Wrapper script around git sort
         (https://github.com/benthaman/git-helpers) to sort series.conf lines
-	according to the upstream order to commits that the patches backport.
+	according to the upstream order of commits that the patches backport.
 quilt-mode.sh
 	Contains a set of shell functions to assist in backporting upstream
 	commits to kernel-source.git.
@@ -54,7 +54,7 @@ Note that `q` is an alias for `quilt`. You may be using `q` a lot...
 Set the list of commits to backport:
 kernel-source/tmp/current$ qadd -r "bsc#1024371 FATE#321245" -d patches.drivers < /tmp/list4
 Note that the commits are automatically sorted using git-sort.
-The references and destination are saved in envrionment variables and reused
+The references and destination are saved in environment variables and reused
 later by `qcp` (see below). They can also be specified directly to `qcp`.
 
 The working list can be queried at any time. Note that it is kept in the
@@ -93,7 +93,7 @@ if a commit is already present:
 * possibly leave it where it is or move it to the current location, then call
   qskip
 * remove the other copy, then call
-  qcp
+  qcp <commit>
   and follow as indicated below (q push, qfmake, ./refresh_patch.sh)
 
 if a commit does not apply:
@@ -107,6 +107,17 @@ qedit
 
 Note that the queue of commits to backport is sorted after invoking qadd or
 qedit. Therefore, commits can be added anywhere in the list when using qedit.
+
+if it turns out that the commit should be skipped:
+q delete -r
+or, if after having done `q push -f`:
+q pop -f
+q delete -r $(q next)
+
+The following commands can be useful to identify the origin of code lines when
+fixing conflicts:
+quilt annotate <file>
+git gui blame --line=<line> <commit> <file>
 
 + Example workflow using kernel.git
 ++ Obtain a patch set
