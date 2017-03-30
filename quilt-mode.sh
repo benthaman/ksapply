@@ -50,7 +50,7 @@ qf1 () {
 
 
 qgoto () {
-	if command=$("$_libdir"/qgoto.py "$@"); then
+	if command=$("$_libdir"/qgoto.py "$@") && [ "$command" ]; then
 		quilt $command
 	fi
 }
@@ -239,28 +239,26 @@ qskip () {
 qdoit () {
 	local entry=$(qnext | awk '{print $1}')
 	while [ "$entry" ]; do
-		local command retval
-		command=$("$_libdir"/qgoto.py "$entry")
-		retval=$?
-		if [ $retval -eq 1 ]; then
+		local command
+		if ! command=$("$_libdir"/qgoto.py "$entry"); then
 			echo "Error: qgoto.py exited with an error" > /dev/stderr
 			return 1
 		fi
-		while [ $retval -ne 2 ]; do
+		while [ "$command" ]; do
 			if ! quilt $command; then
 				echo "\`quilt $command\` did not complete sucessfully. Please examine the situation." > /dev/stderr
 				return 1
 			fi
 
-			command=$("$_libdir"/qgoto.py $entry)
-			retval=$?
-			if [ $retval -eq 1 ]; then
+			if ! command=$("$_libdir"/qgoto.py "$entry"); then
 				echo "Error: qgoto.py exited with an error" > /dev/stderr
 				return 1
 			fi
 		done
 
+		echo
 		if ! qdupcheck $entry; then
+			echo
 			echo "The next commit is already present in the series. Please examine the situation." > /dev/stderr
 			return 1
 		fi

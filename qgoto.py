@@ -103,5 +103,3 @@ if __name__ == "__main__":
         print("push %d" % (delta,))
     elif delta < 0:
         print("pop %d" % (-1 * delta,))
-    else:
-        sys.exit(2)
