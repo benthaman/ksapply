@@ -46,6 +46,8 @@ def doit(references, tmpdir, dstdir, ref, poi=[]):
                            src,), preexec_fn=lib.restore_signals)
     subprocess.check_call(("quilt", "import", "-P", dst, src,),
                           preexec_fn=lib.restore_signals)
+    # This will remind the user to run refresh_patch.sh
+    lib.touch(".pc/%s~refresh" % (dst,))
 
     return 0
 

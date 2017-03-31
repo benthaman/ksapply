@@ -51,3 +51,9 @@ def repo_path():
               file=sys.stderr)
         sys.exit(1)
     return pygit2.discover_repository(search_path)
+
+
+# http://stackoverflow.com/questions/1158076/implement-touch-using-python
+def touch(fname, times=None):
+    with open(fname, 'a'):
+        os.utime(fname, times)
