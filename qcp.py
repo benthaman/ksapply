@@ -13,7 +13,6 @@ import sys
 import tempfile
 
 import lib
-import lib_tag
 
 
 def doit(references, tmpdir, dstdir, ref, poi=[]):
@@ -24,19 +23,7 @@ def doit(references, tmpdir, dstdir, ref, poi=[]):
     # remove number prefix
     name = os.path.basename(src)[5:]
     dst = os.path.join(dstdir, name)
-    path = os.path.join("patches", dst)
-    if os.path.exists(path):
-        if lib.firstword(lib_tag.tag_get(path, "Git-commit")[0]) == ref:
-            top = subprocess.check_output(
-                ("quilt", "top",), preexec_fn=lib.restore_signals).strip()
-            if top != path:
-                # Todo: check if it's in the series at all or some stray file
-                # Possibly this error could be removed if we want to revert the
-                # stable version of a fix and then import the original version,
-                # of have the option to bypass the error with --force
-                print("Error: ref \"%s\" already present in patch \"%s\" not here in the series."
-                      % (ref, dst,), file=sys.stderr)
-                return 1
+    if os.path.exists(os.path.join("patches", dst)):
         name = "%s-%s.patch" % (name[:-6], ref[:8],)
         dst = os.path.join(dstdir, name)
 
