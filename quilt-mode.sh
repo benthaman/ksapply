@@ -15,12 +15,79 @@ _switcheroo
 
 
 qfmake () {
-	local targets new_target
+	local i
+	local doit=1
+	while true ; do
+		case "$1" in
+			-h|--help)
+				echo "Usage: ${FUNCNAME[1]} [options] [extra arguments passed to make]"
+				echo ""
+				echo "Build targets that have been modified by top patch (using a simple heuristic)."
+				echo ""
+				echo "Options:"
+				echo "    -x, --exclude <target|dir>     Exclude target or targets under directory from automatic building."
+				echo "    -X, --no-exclude <target|dir>  Remove previously set exclusion."
+				echo "    -r, --reset                    Reset exclusion list."
+				echo "    -s, --show                     Show exclusion list."
+				echo "    -h, --help                     Print this help"
+				return
+				;;
+			-x|--exclude)
+				if printf "%s\n" "${qfm_excludes[@]}" | grep -qv "$2"; then
+					qfm_excludes+=("$2")
+				fi
+				shift
+				doit=
+				;;
+			-X|--no-exclude)
+				for i in $(seq 0 $((${#qfm_excludes[@]} - 1))); do
+					if [ "${qfm_excludes[i]}" = "$2" ]; then
+						qfm_excludes=("${qfm_excludes[@]:0:$i}" "${qfm_excludes[@]:$((i + 1))}")
+						break
+					fi
+				done
+				shift
+				doit=
+				;;
+			-r|--reset)
+				qfm_excludes=()
+				return
+				;;
+			-s|--show)
+				if [ "${#qfm_excludes[@]}" -gt 0 ]; then
+					printf "%s\n" "${qfm_excludes[@]}"
+				fi
+				return
+				;;
+			*)
+				shift
+				break
+				;;
+		esac
+		shift
+	done
 
-	# filter targets to remove elements that are included under other
-	# elements
+	if [ -z "$doit" ]; then
+		return
+	fi
+
+	local targets new_target
 	for new_target in "$@" $(quilt files | sed -n -e 's/.c$/.o/p'); do
-		local i add=1
+		local exclude
+		local add=1
+		for exclude in "${qfm_excludes[@]}"; do
+			# new_target is under exclude
+			if echo "$new_target" | grep -q '^'"$exclude"; then
+				add=
+				break
+			fi
+		done
+		if [ -z "$add" ]; then
+			continue
+		fi
+
+		# filter targets to remove elements that are included under
+		# other elements
 		for i in $(seq 0 $((${#targets[@]} - 1))); do
 			local target=${targets[i]}
 			# new_target is under target
