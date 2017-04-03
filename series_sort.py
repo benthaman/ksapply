@@ -46,7 +46,8 @@ if __name__ == "__main__":
                   file=sys.stderr)
             sys.exit(1)
 
-        gc_tags = lib_tag.tag_get(name, "Git-commit")
+        f = open(name)
+        gc_tags = lib_tag.tag_get(f, "Git-commit")
         if not gc_tags:
             oot.append(line)
             continue
@@ -54,7 +55,8 @@ if __name__ == "__main__":
             h = lib.firstword(gc_tags[0])
             commit = repo.revparse_single(h)
         except KeyError:
-            r_tags = lib_tag.tag_get(name, "Git-repo")
+            f.seek(0)
+            r_tags = lib_tag.tag_get(f, "Git-repo")
             if not r_tags:
                 print("Error: commit \"%s\" not found in repository and no "
                       "alternate repository specified. Patch \"%s\" is not "

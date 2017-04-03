@@ -60,7 +60,7 @@ if __name__ == "__main__":
     last = None
     current = None
     for patch in cat_subseries():
-        h = lib.firstword(lib_tag.tag_get(os.path.join("patches", patch),
+        h = lib.firstword(lib_tag.tag_get(open(os.path.join("patches", patch)),
                                           "Git-commit")[0])
         if h in tagged and last != h:
             print("Error: sub-series is not sorted.", file=sys.stderr)

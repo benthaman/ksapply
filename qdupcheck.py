@@ -38,10 +38,11 @@ if __name__ == "__main__":
 
     for p in lib.cat_series():
         path = os.path.join("patches", p)
-        if ref in [lib.firstword(v) for v in
-                   lib_tag.tag_get(path, "Git-commit")]:
+        f = open(path)
+        if ref in [lib.firstword(v) for v in lib_tag.tag_get(f, "Git-commit")]:
             print("Commit %s already present in patch\n\t%s" % (ref[:12], p,))
-            references = " ".join(lib_tag.tag_get(path, "References"))
+            f.seek(0)
+            references = " ".join(lib_tag.tag_get(f, "References"))
             if references:
                 print("for\n\t%s" % (references,))
 
