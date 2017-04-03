@@ -8,6 +8,8 @@ import pygit2
 import signal
 import sys
 
+import lib_tag
+
 
 # http://stackoverflow.com/questions/22077881/yes-reporting-error-with-subprocess-communicate
 def restore_signals(): # from http://hg.python.org/cpython/rev/768722b2ae0a/
@@ -57,3 +59,12 @@ def repo_path():
 def touch(fname, times=None):
     with open(fname, 'a'):
         os.utime(fname, times)
+
+
+def find_commit_in_series(ref):
+    for patch in cat_series():
+        path = os.path.join("patches", patch)
+        f = open(path)
+        if ref in [firstword(v) for v in lib_tag.tag_get(f, "Git-commit")]:
+            f.seek(0)
+            return f

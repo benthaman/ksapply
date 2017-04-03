@@ -36,18 +36,17 @@ if __name__ == "__main__":
     repo = pygit2.Repository(repo_path)
     ref = str(repo.revparse_single(args.refspec).id)
 
-    for p in lib.cat_series():
-        path = os.path.join("patches", p)
-        f = open(path)
-        if ref in [lib.firstword(v) for v in lib_tag.tag_get(f, "Git-commit")]:
-            print("Commit %s already present in patch\n\t%s" % (ref[:12], p,))
-            f.seek(0)
-            references = " ".join(lib_tag.tag_get(f, "References"))
-            if references:
-                print("for\n\t%s" % (references,))
+    f = lib.find_commit_in_series(ref)
+    if f is not None:
+        # remove "patches/" prefix
+        print("Commit %s already present in patch\n\t%s" % (
+            ref[:12], f.name[8:],))
+        references = " ".join(lib_tag.tag_get(f, "References"))
+        if references:
+            print("for\n\t%s" % (references,))
 
-            top = subprocess.check_output(
-                ("quilt", "top",), preexec_fn=lib.restore_signals).strip()
-            if top == path:
-                print("This is the top patch.")
-            sys.exit(1)
+        top = subprocess.check_output(
+            ("quilt", "top",), preexec_fn=lib.restore_signals).strip()
+        if top == f.name:
+            print("This is the top patch.")
+        sys.exit(1)
