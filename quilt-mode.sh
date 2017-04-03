@@ -149,7 +149,6 @@ qcp () {
 				;;
 			*)
 				args+=($1)
-				shift
 				;;
 		esac
 		shift

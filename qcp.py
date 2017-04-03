@@ -8,14 +8,16 @@ import os
 import os.path
 import pygit2
 import shutil
+import StringIO
 import subprocess
 import sys
 import tempfile
 
 import lib
+import lib_tag
 
 
-def doit(references, tmpdir, dstdir, ref, poi=[]):
+def format_import(references, tmpdir, dstdir, ref, poi=[]):
     assert len(poi) == 0 # todo
     args = ("git", "format-patch", "--output-directory", tmpdir, "--notes",
             "--max-count=1", "--subject-prefix=", "--no-numbered", ref,)
@@ -42,14 +44,28 @@ def doit(references, tmpdir, dstdir, ref, poi=[]):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Generate a patch from a git commit and import it into quilt.")
-    parser.add_argument("-r", "--references", required=True,
+    parser.add_argument("-r", "--references",
                         help="bsc# or FATE# number used to tag the patch file.")
-    parser.add_argument("-d", "--destination", required=True,
+    parser.add_argument("-d", "--destination",
                         help="Destination \"patches.xxx\" directory.")
+    parser.add_argument("-f", "--followup", action="store_true",
+                        help="Reuse references and destination from the patch "
+                        "containing the commit specified in the first "
+                        "\"Fixes\" tag in the commit log of the commit to "
+                        "import.")
     parser.add_argument("refspec", help="Upstream commit id to import.")
     parser.add_argument("poi", help="Limit patch to specified paths.",
                         nargs=argparse.REMAINDER)
     args = parser.parse_args()
+
+    if not (args.references and args.destination or args.followup):
+        print("Error: you must specify --references and --destination or "
+              "--followup.", file=sys.stderr)
+        sys.exit(1)
+
+    if (args.references or args.destination) and args.followup:
+        print("Warning: --followup overrides information from --references and "
+              "--destination.", file=sys.stderr)
 
     if not lib.check_series():
         sys.exit(1)
@@ -58,12 +74,27 @@ if __name__ == "__main__":
     if "GIT_DIR" not in os.environ:
         os.environ["GIT_DIR"] = repo_path
     repo = pygit2.Repository(repo_path)
-    ref = str(repo.revparse_single(args.refspec).id)
+    commit = repo.revparse_single(args.refspec)
+
+    if args.followup:
+        fixes = lib.firstword(lib_tag.tag_get(StringIO.StringIO(commit.message),
+                                              "Fixes")[0])
+        fixes = str(repo.revparse_single(fixes).id)
+        f = lib.find_commit_in_series(fixes)
+        # remove "patches/" prefix
+        patch = f.name[8:]
+        destination = os.path.dirname(patch)
+        references = " ".join(lib_tag.tag_get(f, "References"))
+        print("Info: using references \"%s\" from patch \"%s\" which contains "
+              "commit %s." % (references, patch, fixes[:12]), file=sys.stderr)
+    else:
+        destination = args.destination
+        references = args.references
 
     tmpdir = tempfile.mkdtemp(prefix="qcp.")
-
     try:
-        result = doit(args.references, tmpdir, args.destination, ref, args.poi)
+        result = format_import(references, tmpdir, destination, str(commit.id),
+                               args.poi)
     finally:
         shutil.rmtree(tmpdir)
     sys.exit(result)
