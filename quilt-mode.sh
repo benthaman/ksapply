@@ -1,5 +1,6 @@
 _libdir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
 . "$_libdir"/lib.sh
+. "$_libdir"/lib_tag.sh
 
 alias q=quilt
 
@@ -125,6 +126,12 @@ qgoto () {
 
 qdupcheck () {
 	"$_libdir"/qdupcheck.py "$@"
+}
+
+
+qdiffcheck () {
+	local ref=$(tag_get git-commit < $(q top) | GIT_DIR="$LINUX_GIT"/.git expand_git_ref)
+	interdiff <(GIT_DIR="$LINUX_GIT"/.git git f1 $ref) $(q top)
 }
 
 
