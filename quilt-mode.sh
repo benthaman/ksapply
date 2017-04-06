@@ -61,7 +61,6 @@ qfmake () {
 				return
 				;;
 			*)
-				shift
 				break
 				;;
 		esac
