@@ -115,6 +115,7 @@ format_sanitized_subject () {
 	sed -re '
 		s/\.+/./g
 		s/[^a-zA-Z0-9._]+/-/g
+		s/^-+//
 		s/[-.]+$//
 		s/(.{,52}).*/\1/
 	'
