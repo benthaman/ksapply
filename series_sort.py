@@ -32,6 +32,7 @@ if __name__ == "__main__":
     oot = []
     # Queued in subsystem maintainer repository
     subsys = []
+    # tagged[commit] = series.conf entry
     tagged = {}
     for line in sys.stdin.readlines():
         name = line.strip()
@@ -58,9 +59,10 @@ if __name__ == "__main__":
             f.seek(0)
             r_tags = lib_tag.tag_get(f, "Git-repo")
             if not r_tags:
-                print("Error: commit \"%s\" not found in repository and no "
-                      "alternate repository specified. Patch \"%s\" is not "
-                      "understood." % (h, name,), file=sys.stderr)
+                print("Error: commit \"%s\" not found and no Git-repo "
+                      "specified. Either the repository at \"%s\" is outdated "
+                      "or patch \"%s\" is tagged improperly." % (
+                          h, repo_path, name,), file=sys.stderr)
                 sys.exit(1)
             subsys.append(line)
 
@@ -70,16 +72,18 @@ if __name__ == "__main__":
         else:
             tagged[h] = [line]
 
-    for line_list in git_sort.git_sort(repo, tagged):
+    sorted_tagged = list(git_sort.git_sort(repo, tagged))
+    if len(tagged) != 0:
+        print("Error: the following patches are tagged with commits that were "
+              "not found upstream:", file=sys.stderr)
+        for line_list in tagged.values():
+            for line in line_list:
+                print(line, end="", file=sys.stderr)
+        sys.exit(1)
+
+    for line_list in sorted_tagged:
         for line in line_list:
             print(line, end="")
-
-    if len(tagged) != 0:
-        print("Error: the following entries were not found upstream:", file=sys.stderr)
-        for line_list in lines.values():
-            for line in line_list:
-                print(line, end="")
-        sys.exit(1)
 
     if subsys:
         print("\n\t# Queued in subsystem maintainer repository")
