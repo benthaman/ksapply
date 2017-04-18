@@ -16,21 +16,6 @@ import lib_tag
 from git_helpers import git_sort
 
 
-def cat_subseries():
-    inside = False
-    for line in open("series"):
-        line = line.strip()
-        if inside:
-            if line == "# Wireless Networking":
-                return
-
-            if line and not line[0] in ("#", "-", "+",):
-                yield line
-        elif line == "# SLE12-SP3 network driver updates":
-            inside = True
-            continue
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Print the quilt push or pop command required to reach the "
@@ -59,7 +44,7 @@ if __name__ == "__main__":
     index = 1
     last = None
     current = None
-    for patch in cat_subseries():
+    for patch in lib.cat_subseries(open("series")):
         h = lib.firstword(lib_tag.tag_get(open(os.path.join("patches", patch)),
                                           "Git-commit")[0])
         if h in tagged and last != h:
@@ -74,8 +59,9 @@ if __name__ == "__main__":
     delta = 0
     # top is outside the sub-series
     if current is None:
-        series = list(lib.cat_series())
-        delta += (series.index(next(cat_subseries())) - 1) - series.index(top)
+        series = list(lib.cat_series(open("series")))
+        delta += ((series.index(next(lib.cat_subseries(open("series")))) - 1) -
+                  series.index(top))
         current = 0
 
     insert = None

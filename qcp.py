@@ -80,7 +80,7 @@ if __name__ == "__main__":
         fixes = lib.firstword(lib_tag.tag_get(StringIO.StringIO(commit.message),
                                               "Fixes")[0])
         fixes = str(repo.revparse_single(fixes).id)
-        f = lib.find_commit_in_series(fixes)
+        f = lib.find_commit_in_series(fixes, open("series"))
         # remove "patches/" prefix
         patch = f.name[8:]
         destination = os.path.dirname(patch)

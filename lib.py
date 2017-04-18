@@ -33,14 +33,30 @@ def firstword(value):
 
 
 # Beware that this returns an iterator, not a list
-def cat_series():
-    for line in open("series"):
+def cat_series(series):
+    for line in series:
         line = line.strip()
         if not line:
             continue
         if line.startswith(("#", "-", "+",)):
             continue
         yield firstword(line)
+
+
+# Beware that this returns an iterator, not a list
+def cat_subseries(series):
+    inside = False
+    for line in series:
+        line = line.strip()
+        if inside:
+            if line == "# Wireless Networking":
+                return
+
+            if line and not line[0] in ("#", "-", "+",):
+                yield line
+        elif line == "# SLE12-SP3 network driver updates":
+            inside = True
+            continue
 
 
 def repo_path():
@@ -61,8 +77,8 @@ def touch(fname, times=None):
         os.utime(fname, times)
 
 
-def find_commit_in_series(ref):
-    for patch in cat_series():
+def find_commit_in_series(ref, series):
+    for patch in cat_series(series):
         path = os.path.join("patches", patch)
         f = open(path)
         if ref in [firstword(v) for v in lib_tag.tag_get(f, "Git-commit")]:

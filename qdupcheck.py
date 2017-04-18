@@ -36,7 +36,7 @@ if __name__ == "__main__":
     repo = pygit2.Repository(repo_path)
     ref = str(repo.revparse_single(args.refspec).id)
 
-    f = lib.find_commit_in_series(ref)
+    f = lib.find_commit_in_series(ref, open("series"))
     if f is not None:
         # remove "patches/" prefix
         print("Commit %s already present in patch\n\t%s" % (
