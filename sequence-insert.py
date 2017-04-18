@@ -39,7 +39,13 @@ if __name__ == "__main__":
     tagged = {}
     last = None
     for patch in lib.cat_subseries(open("series.conf")):
-        h = lib.firstword(lib_tag.tag_get(open(patch), "Git-commit")[0])
+        try:
+            h = lib.firstword(lib_tag.tag_get(open(patch), "Git-commit")[0])
+        except IndexError:
+            print("Error: No Git-commit tag found in %s" % (patch,),
+                  file=sys.stderr)
+            sys.exit(1)
+
         if h in tagged and last != h:
             print("Error: sub-series is not sorted.", file=sys.stderr)
             sys.exit(1)

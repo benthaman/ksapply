@@ -74,11 +74,21 @@ if __name__ == "__main__":
     if "GIT_DIR" not in os.environ:
         os.environ["GIT_DIR"] = repo_path
     repo = pygit2.Repository(repo_path)
-    commit = repo.revparse_single(args.refspec)
+    try:
+        commit = repo.revparse_single(args.refspec)
+    except KeyError:
+        print("Error: unknown revision \"%s\"." % (args.refspec),
+              file=sys.stderr)
+        sys.exit(1)
 
     if args.followup:
-        fixes = lib.firstword(lib_tag.tag_get(StringIO.StringIO(commit.message),
-                                              "Fixes")[0])
+        try:
+            fixes = lib.firstword(lib_tag.tag_get(
+                StringIO.StringIO(commit.message), "Fixes")[0])
+        except IndexError:
+            print("Error: no \"Fixes\" tag found in commit \"%s\"." %
+                  (str(commit.id)[:12]), file=sys.stderr)
+            sys.exit(1)
         fixes = str(repo.revparse_single(fixes).id)
         f = lib.find_commit_in_series(fixes, open("series"))
         # remove "patches/" prefix
