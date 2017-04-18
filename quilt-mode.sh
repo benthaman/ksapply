@@ -133,7 +133,7 @@ qdupcheck () {
 
 qdiffcheck () {
 	local ref=$(tag_get git-commit < $(q top) | GIT_DIR="$LINUX_GIT"/.git expand_git_ref)
-	interdiff <(GIT_DIR="$LINUX_GIT"/.git git f1 $ref) $(q top)
+	interdiff <(GIT_DIR="$LINUX_GIT"/.git $_libdir/git_helpers/git-f1 $ref) $(q top)
 }
 
 
@@ -240,7 +240,7 @@ qadd () {
 		(
 			[ ${#series[@]} -gt 0 ] && printf "%s\n" "${series[@]}"
 			[ -n "$_series" ] && echo "$_series"
-		) | GIT_DIR="$LINUX_GIT"/.git git sort
+		) | GIT_DIR="$LINUX_GIT"/.git $_libdir/git_helpers/git-sort
 	)"
 
 	if [ -z "${series[0]}" ]; then
@@ -265,7 +265,8 @@ qedit () {
 
 	${EDITOR:-${VISUAL:-vi}} "$tmpfile"
 
-	mapfile -t series <<< "$(grep . "$tmpfile" | GIT_DIR="$LINUX_GIT"/.git git sort)"
+	mapfile -t series <<< "$(grep . "$tmpfile" |
+		GIT_DIR="$LINUX_GIT"/.git $_libdir/git_helpers/git-sort)"
 
 	if [ -z "${series[0]}" ]; then
 		unset series[0]
