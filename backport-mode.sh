@@ -1,3 +1,8 @@
+# Contains a set of shell functions to assist in generating a patch
+# series from upstream commits.
+# Useful when porting a list of commits from upstream to SUSE's kernel.git
+
+
 _libdir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
 . "$_libdir"/lib.sh
 . "$_libdir"/lib_tag.sh

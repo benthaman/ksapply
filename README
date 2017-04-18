@@ -1,56 +1,20 @@
-backport-mode.sh
-	Contains a set of shell functions to assist in generating a patch
-	series from upstream commits.
-	Useful when porting a list of commits from upstream to our kernel.
-armor_origin.sh
-	Transform a "Git-commit" tag into a "(cherry picked from ...)" line.
-	Useful before importing patches into kernel.git.
-clean_header.sh
-	Filter a patch file such that it is properly formatted per SUSE rules.
-	Useful before importing patches.
-ksapply.sh
-	Apply the next patch in the quilt queue while cleaning and renaming it.
-	Useful when importing patches into kernel-source.git.
-rename_patch.sh
-	Move a patch file such that its new name is similar to what git
-	format-patch would have picked.
-	Useful when importing patches from a maildir.
-check_missing_fixes.sh
-	Check if a commit is referenced in the log of later commits.
-	Useful to identify missing followup commits.
-refs_in_series.sh
-	Check if a commit is already part of a branch in kernel-source.git
-	Useful to check if a list of commits have already been backported to
-	our kernel.
-series_sort.py
-	Script to sort series.conf lines according to the upstream order of
-	commits that the patches backport.
-	This script requires git-sort from the git-helpers repository
-	(https://github.com/benthaman/git-helpers).
-	After cloning the current repository, run
-		git submodule init
-		git submodule update
-	A convenient way to use series_sort.py to filter a subset of lines
-	within series.conf when using the vim text editor is to visually
-	select the lines and filter them through the script:
-		shift-v
-		j j j j [...] # or ctrl-d or /pattern<enter>
-		:'<,'>! ~/<path>/series_sort.py
-quilt-mode.sh
-	Contains a set of shell functions to assist in backporting upstream
-	commits to kernel-source.git.
-	These functions are meant to be used with a modified `quilt` that can
-	use series.conf directly instead of a shadow copy.
-	(ssh://wotan.suse.de/~bpoirier/Export/quilt.git)
-	These functions also rely on `git sort`, available from the above
-	"git-helpers" repository.
-sequence-insert.py
-	When we want to backport a specific commit at its right position in
-	the sorted sub-series, it is most efficient to use sequence_patch.sh
-	to expand the tree up to the patch just before where the new commit
-	will be added. sequence-insert.py prints out which patch that is.
-	Use in conjunction with sequence-patch.sh.
-	See the section "Example workflow to backport a single commit"
+vim:filetype=notes ai
+
++ Installing
+Some scripts in the current repository require utilities available in the
+git-helpers repository (https://github.com/benthaman/git-helpers).
+That repository is configured as a submodule of ksapply.git. After cloning the
+current repository, run:
+	git submodule init
+	git submodule update
+
+
+The functions in quilt-mode.sh are meant to be used with a modified `quilt`
+that can use kernel-source.git's series.conf directly instead of a shadow
+copy.
+
+Install it from
+	ssh://wotan.suse.de/~bpoirier/Export/quilt.git
 
 + Example workflow to backport a single commit
 For example, we want to backport f5a952c08e84 which is a fix for another

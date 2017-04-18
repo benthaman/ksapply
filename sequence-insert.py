@@ -1,6 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+"""
+When we want to backport a specific commit at its right position in the sorted
+sub-series, it is most efficient to use sequence_patch.sh to expand the tree up
+to the patch just before where the new commit will be added. The current script
+prints out which patch that is. Use in conjunction with sequence-patch.sh.
+"""
+
 from __future__ import print_function
 
 import argparse

@@ -1,5 +1,10 @@
 #!/bin/bash -e
 
+# Move a patch file such that its new name is similar to what git format-patch
+# would have picked.
+# Useful when importing patches from a maildir.
+
+
 progname=$(basename "$0")
 libdir=$(dirname "$(readlink -f "$0")")
 filename=

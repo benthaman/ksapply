@@ -1,5 +1,9 @@
 #!/bin/bash -e
 
+# Apply the next patch in the quilt queue while cleaning and renaming it.
+# Useful when importing patches into SUSE's kernel-source.git.
+
+
 progname=$(basename "$0")
 libdir=$(dirname "$(readlink -f "$0")")
 prefix=

@@ -1,6 +1,18 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+"""
+Script to sort series.conf lines according to the upstream order of commits that
+the patches backport.
+
+A convenient way to use series_sort.py to filter a subset of lines
+within series.conf when using the vim text editor is to visually
+select the lines and filter them through the script:
+    shift-v
+    j j j j [...] # or ctrl-d or /pattern<enter>
+    :'<,'>! ~/<path>/series_sort.py
+"""
+
 from __future__ import print_function
 
 import argparse

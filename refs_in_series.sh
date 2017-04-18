@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Check if a commit is already part of a patch in SUSE's kernel-source.git
+# Useful to check if a list of commits have already been backported.
+
+
 progname=$(basename "$0")
 
 usage () {

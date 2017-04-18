@@ -1,5 +1,10 @@
 #!/bin/bash -e
 
+# Transform a "Git-commit" tag into a "(cherry picked from ...)" line.
+# Useful when importing patches from SUSE's kernel-source.git into
+# kernel.git.
+
+
 progname=$(basename "$0")
 libdir=$(dirname "$(readlink -f "$0")")
 filename=

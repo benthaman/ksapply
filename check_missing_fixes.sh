@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Check if a commit is referenced in the log of later commits.
+# Useful to identify missing followup commits.
+
+
 progname=$(basename "$0")
 usage () {
 	echo "Usage: $progname [OPTIONS]"

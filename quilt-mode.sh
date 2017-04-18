@@ -1,3 +1,6 @@
+# Contains a set of shell functions to assist in backporting upstream commits
+# to SUSE's kernel-source.git.
+
 _libdir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
 . "$_libdir"/lib.sh
 . "$_libdir"/lib_tag.sh

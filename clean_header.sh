@@ -1,5 +1,9 @@
 #!/bin/bash -e
 
+# Filter a patch file such that it is properly formatted per SUSE rules.
+# Useful when importing patches into SUSE's kernel-source.git.
+
+
 progname=$(basename "$0")
 libdir=$(dirname "$(readlink -f "$0")")
 
