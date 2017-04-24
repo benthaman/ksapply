@@ -49,7 +49,7 @@ def cat_subseries(series):
     for line in series:
         line = line.strip()
         if inside:
-            if line == "# Wireless Networking":
+            if line in ("# Wireless Networking", "# out-of-tree patches",):
                 return
 
             if line and not line[0] in ("#", "-", "+",):
