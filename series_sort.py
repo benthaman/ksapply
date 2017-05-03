@@ -16,6 +16,7 @@ select the lines and filter them through the script:
 from __future__ import print_function
 
 import argparse
+import collections
 import os
 import pygit2
 import sys
@@ -42,8 +43,10 @@ if __name__ == "__main__":
 
     # out-of-tree
     oot = []
-    # Queued in subsystem maintainer repository
-    subsys = []
+    # tagged as "Queued in subsystem maintainer repository" and that commit is
+    # not found in the repository
+    # subsys[repo] = series.conf entry
+    subsys = collections.defaultdict(list)
     # tagged[commit] = series.conf entry
     tagged = {}
     for line in sys.stdin.readlines():
@@ -76,7 +79,11 @@ if __name__ == "__main__":
                       "or patch \"%s\" is tagged improperly." % (
                           h, repo_path, name,), file=sys.stderr)
                 sys.exit(1)
-            subsys.append(line)
+            elif len(r_tags) > 1:
+                print("Error: multiple Git-repo tags found. Patch \"%s\" is "
+                      "tagged improperly." % (name,), file=sys.stderr)
+                sys.exit(1)
+            subsys[r_tags[0]].append(line)
 
         h = str(commit.id)
         if h in tagged:
@@ -84,25 +91,32 @@ if __name__ == "__main__":
         else:
             tagged[h] = [line]
 
-    sorted_tagged = list(git_sort.git_sort(repo, tagged))
-    if len(tagged) != 0:
-        print("Error: the following patches are tagged with commits that were "
-              "not found upstream:", file=sys.stderr)
-        for line_list in tagged.values():
-            for line in line_list:
-                print(line, end="", file=sys.stderr)
-        sys.exit(1)
+    last_head = None
+    for head, line_list in git_sort.git_sort(repo, tagged):
+        if last_head is None:
+            last_head = head
+        elif head != last_head:
+            print("\n\t# %s" % (head,))
+            last_head = head
 
-    for line_list in sorted_tagged:
         for line in line_list:
             print(line, end="")
 
-    if subsys:
-        print("\n\t# Queued in subsystem maintainer repository")
-        for line in subsys:
+
+    if len(tagged) != 0:
+        # commits that were found in the repository but that are not indexed by
+        # git-sort.
+        print("\n\t# unsorted patches")
+        for line_list in tagged.values():
+            for line in line_list:
+                print(line, end="")
+
+    for r_tag in sorted(subsys):
+        print("\n\t# Queued in %s" % (r_tag,))
+        for line in subsys[r_tag]:
             print(line, end="")
 
     if oot:
-        print("\n\t# Out-of-tree patches")
+        print("\n\t# out-of-tree patches")
         for line in oot:
             print(line, end="")

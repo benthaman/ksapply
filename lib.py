@@ -54,7 +54,7 @@ def cat_subseries(series):
 
             if line and not line[0] in ("#", "-", "+",):
                 yield line
-        elif line == "# SLE12-SP3 network driver updates":
+        elif line == "# sorted patches":
             inside = True
             continue
 

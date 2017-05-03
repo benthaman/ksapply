@@ -59,7 +59,8 @@ if __name__ == "__main__":
         tagged[ref] = "# commit"
         # else case continued after the sort
 
-    sorted_patches = list(git_sort.git_sort(repo, tagged))
+    sorted_patches = [commit for
+                      head, commit in git_sort.git_sort(repo, tagged)]
 
     # else continued
     if result is None:

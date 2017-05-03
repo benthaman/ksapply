@@ -72,7 +72,8 @@ if __name__ == "__main__":
         # else case continued after the sort
 
     sorted_indexes = [0]
-    sorted_indexes.extend(git_sort.git_sort(repo, tagged))
+    sorted_indexes.extend([commit for
+                           head, commit in git_sort.git_sort(repo, tagged)])
 
     # else continued
     if insert is None:
