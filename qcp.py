@@ -77,7 +77,8 @@ if __name__ == "__main__":
     try:
         commit = repo.revparse_single(args.refspec)
     except KeyError:
-        print("Error: unknown revision \"%s\"." % (args.refspec),
+        print("Error: revision \"%s\" not found in \"%s\"." % (
+            args.refspec, repo_path), file=sys.stderr)
               file=sys.stderr)
         sys.exit(1)
 

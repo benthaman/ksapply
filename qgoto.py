@@ -31,14 +31,19 @@ if __name__ == "__main__":
         # this is for the `git log` call in git_sort.py
         os.environ["GIT_DIR"] = repo_path
     repo = pygit2.Repository(repo_path)
-    ref = str(repo.revparse_single(args.refspec).id)
+    try:
+        ref = str(repo.revparse_single(args.refspec).id)
+    except KeyError:
+        print("Error: revision \"%s\" not found in \"%s\"." % (
+            args.refspec, repo_path), file=sys.stderr)
+        sys.exit(1)
 
     # remove "patches/" prefix
     top = subprocess.check_output(("quilt", "top",),
                                   preexec_fn=lib.restore_signals).strip()[8:]
 
     # tagged[commit] = index
-    # index is the number of patches applied in the sub-series to get to the
+    # index is the number of patches applied in the subseries to get to the
     # last patch which implements commit
     tagged = {}
     index = 1
@@ -48,7 +53,7 @@ if __name__ == "__main__":
         h = lib.firstword(lib_tag.tag_get(open(os.path.join("patches", patch)),
                                           "Git-commit")[0])
         if h in tagged and last != h:
-            print("Error: sub-series is not sorted.", file=sys.stderr)
+            print("Error: subseries is not sorted.", file=sys.stderr)
             sys.exit(1)
         tagged[h] = index
         if patch == top:
@@ -57,7 +62,7 @@ if __name__ == "__main__":
         index += 1
 
     delta = 0
-    # top is outside the sub-series
+    # top is outside the subseries
     if current is None:
         series = list(lib.cat_series(open("series")))
         delta += ((series.index(next(lib.cat_subseries(open("series")))) - 1) -
@@ -75,6 +80,12 @@ if __name__ == "__main__":
     sorted_indexes.extend([commit for
                            head, commit in git_sort.git_sort(repo, tagged)])
 
+    if index in tagged.values():
+        print("Error: requested revision \"%s\" could not be sorted. Please "
+              "make sure it is part of the commits indexed by git-sort." %
+              args.refspec, file=sys.stderr)
+        sys.exit(1)
+
     # else continued
     if insert is None:
         ref_pos = sorted_indexes.index(index)
@@ -82,7 +93,7 @@ if __name__ == "__main__":
         del sorted_indexes[ref_pos]
 
     if sorted(sorted_indexes) != sorted_indexes:
-        print("Error: sub-series is not sorted.", file=sys.stderr)
+        print("Error: subseries is not sorted.", file=sys.stderr)
         sys.exit(1)
 
     delta += insert - current

@@ -45,6 +45,7 @@ def cat_series(series):
 
 # Beware that this returns an iterator, not a list
 def cat_subseries(series):
+    start = "# sorted patches"
     inside = False
     for line in series:
         line = line.strip()
@@ -54,9 +55,12 @@ def cat_subseries(series):
 
             if line and not line[0] in ("#", "-", "+",):
                 yield line
-        elif line == "# sorted patches":
+        elif line == start:
             inside = True
             continue
+    if not inside:
+        raise Exception("Sorted subseries start marker (\"%s\") not found." %
+                        (start,))
 
 
 def repo_path():
