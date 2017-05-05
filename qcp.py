@@ -79,7 +79,6 @@ if __name__ == "__main__":
     except KeyError:
         print("Error: revision \"%s\" not found in \"%s\"." % (
             args.refspec, repo_path), file=sys.stderr)
-              file=sys.stderr)
         sys.exit(1)
 
     if args.followup:
