@@ -16,6 +16,7 @@ copy.
 Install it from
 	ssh://wotan.suse.de/~bpoirier/Export/quilt.git
 
+
 The LINUX_GIT environment variable must be set to the path of a fresh Linux
 kernel git clone; it will be used as a reference for upstream commit
 information. The user.name and user.email git config variables must be
@@ -35,6 +36,7 @@ ben@f1:~/local/src/kernel-source/tmp/current$ . ~/programming/suse/ksapply/quilt
 ben@f1:~/local/src/kernel-source/tmp/current$ qcp -f f5a952c08e84
 Info: using references "bsc#1026030 FATE#321670" from patch "patches.drivers/of-of_mdio-Add-a-whitelist-of-PHY-compatibilities.patch" which contains commit ae461131960b.
 Importing patch /tmp/qcp.d82Wqi/0001-of-of_mdio-Add-marvell-88e1145-to-whitelist-of-PHY-c.patch (stored as patches/patches.drivers/of-of_mdio-Add-marvell-88e1145-to-whitelist-of-PHY-c.patch)
+# Note that `q` is an alias for `quilt`. You may be using `q` a lot...
 ben@f1:~/local/src/kernel-source/tmp/current$ q push
 Applying patch patches/patches.drivers/of-of_mdio-Add-marvell-88e1145-to-whitelist-of-PHY-c.patch
 File drivers/of/of_mdio.c is read-only; trying to patch anyway
@@ -79,25 +81,23 @@ Refer to the section "Generate the list of commit ids to backport" to generate
 the primary list of commits to backport, /tmp/list
 
 Generate the work tree with patches applied up to the first patch in the
-"SLE12-SP3 network driver updates" section:
+"sorted patches" section:
 kernel-source$ ./scripts/sequence-patch.sh patches.drivers/mvneta-consolidate-autoneg-enabling.patch
 
-It preferable to check that the driver builds before getting started:
+It is preferable to check that the driver builds before getting started:
 kernel-source/tmp/current$ make -j4 drivers/net/ethernet/intel/e1000/
 
 Import the quilt-mode functions:
 kernel-source/tmp/current$ . ~/programming/suse/ksapply/quilt-mode.sh
 
-Note that `q` is an alias for `quilt`. You may be using `q` a lot...
-
 Set the list of commits to backport:
-kernel-source/tmp/current$ qadd -r "bsc#1024371 FATE#321245" -d patches.drivers < /tmp/list4
+kernel-source/tmp/current$ qadd -r "bsc#1024371 FATE#321245" -d patches.drivers < /tmp/list
 Note that the commits are automatically sorted using git-sort.
 The references and destination are saved in environment variables and reused
 later by `qcp` (see below). They can also be specified directly to `qcp`.
 
 The working list can be queried at any time. Note that it is kept in the
-$series environment variable, so it will be lost if the shell exits and is not
+$series environment variable. It will be lost if the shell exits. It is not
 available in other terminals.
 kernel-source/tmp/current$ qnext
 847a1d6796c7 e1000: Do not overestimate descriptor counts in Tx pre-check (v4.6-rc3)
@@ -211,28 +211,7 @@ or skip them during the backport.
 # note that the path is a pattern, not just a base directory
 kernel-source$ cat /tmp/list | refs_in_series.sh "drivers/net/ethernet/emulex/benet/*"
 
-Write to a file the list of patches in series.conf that the new commits will
-be mixed in with. These patches must have Git-commit tags.
-
-kernel-source$ vi series.conf # w /tmp/list_series
-
-Generate the reverse patch for kernel.git
-
-kernel-source$ ./scripts/sequence-patch.sh --fast
-kernel-source$ mv $(readlink -f tmp/current) tmp/base
-# edit series.conf and remove the patches that were written to list_series and
-# possibly later patches that depend on them.
-kernel-source$ ./scripts/sequence-patch.sh --fast
-kernel-source$ diff -Nurp --exclude series --exclude .pc --exclude patches --exclude .config --exclude Module.supported tmp/base tmp/current > /tmp/patch
-kernel-source$ rm -rf tmp/base
-
 ++++ Cherry-pick each desired commit to kernel.git
-kernel$ git apply -p2 < /tmp/patch
-kernel$ git add -A
-kernel$ git commit -m "revert-restore"
-kernel$ git log -n1 --oneline # will be needed later
-ccdc24086d54 revert-restore
-
 kernel$ . ~/programming/suse/ksapply/backport-mode.sh
 # note that the pattern is quoted
 kernel$ bpset -s -p ../kernel-source/ -a /tmp/list_series -c /tmp/list2 "drivers/net/ethernet/emulex/benet/*"
@@ -271,10 +250,6 @@ bpdoit drivers/net/ethernet/emulex/benet/
 kernel$ git format-patch -o /tmp/patches/sp3 ccdc24086d54
 
 ++ Import the patch set into kernel-source.git
-Temporarily remove the patches that will be replaced.
-
-kernel-source$ git diff series.conf | grep "^-[[:space:]]" | awk '{print $2}' | xargs rm
-
 Check series.conf to find where the patch set will go and note the last patch
 before that (ex:
 "patches.drivers/IB-0004-mlx4-Configure-extended-active-speeds.patch") and the
