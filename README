@@ -158,6 +158,17 @@ fixing conflicts:
 quilt annotate <file>
 git gui blame --line=<line> <commit> <file>
 
++ Using your own workflow and then inserting a new patch at the right position
+  in series.conf
+It is not mandatory to use the quilt-mode helpers to add patches to the sorted
+section of series.conf. You can also import a patch into kernel-source.git
+using whatever means you prefer, add a new line for this patch anywhere in the
+"sorted patches" section of series.conf and perform a sort of the entire
+section (from the start of "sorted patches" to the end of "out-of-tree
+patches") which will reposition the new entry. This last step is done using
+the "series_sort.py" script. Please see the header of that file for usage
+instructions.
+
 + Example workflow to backport a series of commits using kernel.git
 ++ Obtain a patch set
 +++ Option 1) Patch files from an external source
