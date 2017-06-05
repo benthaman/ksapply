@@ -38,7 +38,8 @@ if __name__ == "__main__":
     # tagged[commit] = patch file name of the last patch which implements commit
     tagged = {}
     last = None
-    for patch in lib.cat_subseries(open("series.conf")):
+    series = lib.split_series(open("series.conf"))
+    for patch in series[1]:
         try:
             h = lib.firstword(lib_tag.tag_get(open(patch), "Git-commit")[0])
         except IndexError:
@@ -70,11 +71,10 @@ if __name__ == "__main__":
         else:
             # should be inserted first in sub-series, get last patch name before
             # sub-series
-            series = list(lib.cat_series("series.conf"))
-            result = series[series.index(sorted_patches[0]) - 1]
+            result = series[0][-1]
         del sorted_patches[ref_pos]
 
-    if sorted_patches != list(lib.cat_subseries(open("series.conf"))):
+    if sorted_patches != series[1]:
         print("Error: sub-series is not sorted.", file=sys.stderr)
         sys.exit(1)
 

@@ -49,7 +49,9 @@ if __name__ == "__main__":
     index = 1
     last = None
     current = None
-    for patch in lib.cat_subseries(open("series")):
+
+    series = lib.split_series(open("series"))
+    for patch in series[1]:
         h = lib.firstword(lib_tag.tag_get(open(os.path.join("patches", patch)),
                                           "Git-commit")[0])
         if h in tagged and last != h:
@@ -64,9 +66,7 @@ if __name__ == "__main__":
     delta = 0
     # top is outside the subseries
     if current is None:
-        series = list(lib.cat_series(open("series")))
-        delta += ((series.index(next(lib.cat_subseries(open("series")))) - 1) -
-                  series.index(top))
+        delta += len(series[0]) - 1 - lib.flatten(series).index(top)
         current = 0
 
     insert = None

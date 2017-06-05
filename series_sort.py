@@ -46,7 +46,8 @@ if __name__ == "__main__":
     # out-of-tree
     oot = []
     # tagged as "Queued in subsystem maintainer repository" and that commit is
-    # not found in the repository
+    # not found in the repository. This is probably because that remote is not
+    # indexed by git-sort.
     # subsys[repo] = series.conf entry
     subsys = collections.defaultdict(list)
     # tagged[commit] = series.conf entry

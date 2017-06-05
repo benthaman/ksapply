@@ -32,35 +32,41 @@ def firstword(value):
     return value.split(None, 1)[0]
 
 
-# Beware that this returns an iterator, not a list
-def cat_series(series):
+def split_series(series):
+    before = []
+    inside = []
+    after = []
+
+    current = before
     for line in series:
         line = line.strip()
         if not line:
             continue
+
+        if current == before and line in ("# sorted patches",
+                                          "# Sorted Network Patches",):
+            current = inside
+        elif current == inside and line in ("# Wireless Networking",
+                                            "# out-of-tree patches",):
+            current = after
+
         if line.startswith(("#", "-", "+",)):
             continue
-        yield firstword(line)
+
+        current.append(firstword(line))
+
+    if current != after:
+        raise Exception("Sorted subseries not found.")
+
+    return (before, inside, after,)
 
 
-# Beware that this returns an iterator, not a list
-def cat_subseries(series):
-    start = "# sorted patches"
-    inside = False
-    for line in series:
-        line = line.strip()
-        if inside:
-            if line in ("# Wireless Networking", "# out-of-tree patches",):
-                return
+# https://stackoverflow.com/a/952952
+flatten = lambda l: [item for sublist in l for item in sublist]
 
-            if line and not line[0] in ("#", "-", "+",):
-                yield line
-        elif line == start:
-            inside = True
-            continue
-    if not inside:
-        raise Exception("Sorted subseries start marker (\"%s\") not found." %
-                        (start,))
+
+def cat_series(series):
+    return flatten(split_series(series))
 
 
 def repo_path():
