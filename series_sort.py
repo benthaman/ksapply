@@ -5,6 +5,8 @@
 Script to sort series.conf lines according to the upstream order of commits that
 the patches backport.
 
+This script reads series.conf lines from stdin and outputs its result to stdout.
+
 A convenient way to use series_sort.py to filter a subset of lines
 within series.conf when using the vim text editor is to visually
 select the lines and filter them through the script:
@@ -84,12 +86,12 @@ if __name__ == "__main__":
                       "tagged improperly." % (name,), file=sys.stderr)
                 sys.exit(1)
             subsys[r_tags[0]].append(line)
-
-        h = str(commit.id)
-        if h in tagged:
-            tagged[h].append(line)
         else:
-            tagged[h] = [line]
+            h = str(commit.id)
+            if h in tagged:
+                tagged[h].append(line)
+            else:
+                tagged[h] = [line]
 
     last_head = None
     for head, line_list in git_sort.git_sort(repo, tagged):
