@@ -26,6 +26,7 @@ set to sensible values in that clone; they will be used to tag patches.
 For example, we want to backport f5a952c08e84 which is a fix for another
 commit which was already backported:
 
+# adjust the path to `sequence-insert.py` according to your environment
 ben@f1:~/local/src/kernel-source$ ./scripts/sequence-patch.sh $(~/programming/suse/ksapply/sequence-insert.py f5a952c08e84)
 [...]
 ben@f1:~/local/src/kernel-source$ cd tmp/current
@@ -81,8 +82,9 @@ Refer to the section "Generate the list of commit ids to backport" to generate
 the primary list of commits to backport, /tmp/list
 
 Generate the work tree with patches applied up to the first patch in the
-"sorted patches" section:
-kernel-source$ ./scripts/sequence-patch.sh patches.drivers/mvneta-consolidate-autoneg-enabling.patch
+list of commits to backport:
+# adjust the path to `sequence-insert.py` according to your environment
+kernel-source$ ./scripts/sequence-patch.sh $(~/programming/suse/ksapply/sequence-insert.py $(head -n1 /tmp/list | awk '{print $1}'))
 
 It is preferable to check that the driver builds before getting started:
 kernel-source/tmp/current$ make -j4 drivers/net/ethernet/intel/e1000/
@@ -125,33 +127,38 @@ For each commit in the list, this command will
   changed by the topmost patch.
 
 The process will stop automatically in case of error. At that time the user
-must address the situation and then call qdoit again when ready.
+must address the situation and then call `qdoit` again when ready.
 
 To address the situation,
-if a commit is already present:
-* possibly leave it where it is or move it to the current location, then call
-  qskip
-* remove the other copy, then call
-  qcp <commit>
-  and follow as indicated below (q push, qfmake, ./refresh_patch.sh)
+* if a commit is already present in an existing patch
+	* possibly leave the patch where it is or move it to the current
+	  location. To move a patch, edit series.conf. However, if the patch
+	  is already applied, make sure to use `q pop` or `qgoto` first.
+	  Then call `qskip` to skip the commit.
+	* remove the other copy, using `q delete -r <patch`, then call
+	  `qcp <commit>` and follow as indicated below (q push, qfmake,
+	  ./refresh_patch.sh)
+* if a commit does not apply
+	q push -f # or -fm
+	vi-conflicts # also from git-helpers
+	qfmake [...]
+	./refresh_patch.sh
+* if one or more additional commits are necessary to fix the problem
+	Use `qedit` to add these additional commits to the list of commits to
+	backport.
 
-if a commit does not apply:
-q push -f # or -fm
-vi-conflicts # also from git-helpers
-qfmake [...]
-./refresh_patch.sh
-
-if one or more additional commits are necessary to fix the problem:
-qedit
-
-Note that the queue of commits to backport is sorted after invoking qadd or
-qedit. Therefore, commits can be added anywhere in the list when using qedit.
-
-if it turns out that the commit should be skipped:
-q delete -r
-or, if after having done `q push -f`:
-q pop -f
-q delete -r $(q next)
+	Note that the queue of commits to backport is sorted after invoking
+	qadd or qedit. Therefore, commits can be added anywhere in the list
+	when using qedit.
+	After editing the queue of commits to backport, `qnext` will show one
+	of the new commits since it should be backported before the current
+	one. You can continue by calling `qdoit` to backport the dependent
+	commits.
+* if it turns out that the commit should be skipped
+	q delete -r
+	or, if after having done `q push -f`:
+	q pop -f
+	q delete -r $(q next)
 
 The following commands can be useful to identify the origin of code lines when
 fixing conflicts:
