@@ -14,7 +14,7 @@ that can use kernel-source.git's series.conf directly instead of a shadow
 copy.
 
 Install it from
-	ssh://wotan.suse.de/~bpoirier/Export/quilt.git
+	https://gitlab.suse.de/benjamin_poirier/quilt
 
 
 The LINUX_GIT environment variable must be set to the path of a fresh Linux
