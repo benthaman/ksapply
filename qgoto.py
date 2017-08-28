@@ -20,7 +20,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Print the quilt push or pop command required to reach the "
         "position where the specified commit should be imported.")
-    parser.add_argument("refspec", help="Upstream commit id.")
+    parser.add_argument("rev", help="Upstream commit id.")
     args = parser.parse_args()
 
     if not lib.check_series():
@@ -32,14 +32,14 @@ if __name__ == "__main__":
         os.environ["GIT_DIR"] = repo_path
     repo = pygit2.Repository(repo_path)
     try:
-        ref = str(repo.revparse_single(args.refspec).id)
+        commit = str(repo.revparse_single(args.rev).id)
     except ValueError:
-        print("Error: \"%s\" is not a valid ref." % (args.refspec,),
+        print("Error: \"%s\" is not a valid revision." % (args.rev,),
               file=sys.stderr)
         sys.exit(1)
     except KeyError:
         print("Error: revision \"%s\" not found in \"%s\"." % (
-            args.refspec, repo_path), file=sys.stderr)
+            args.rev, repo_path), file=sys.stderr)
         sys.exit(1)
 
     # remove "patches/" prefix
@@ -73,10 +73,10 @@ if __name__ == "__main__":
         current = 0
 
     insert = None
-    if ref in tagged:
-        insert = tagged[ref]
+    if commit in tagged:
+        insert = tagged[commit]
     else:
-        tagged[ref] = index
+        tagged[commit] = index
         # else case continued after the sort
 
     sorted_indexes = [0]
@@ -86,14 +86,14 @@ if __name__ == "__main__":
     if index in tagged.values():
         print("Error: requested revision \"%s\" could not be sorted. Please "
               "make sure it is part of the commits indexed by git-sort." %
-              args.refspec, file=sys.stderr)
+              args.rev, file=sys.stderr)
         sys.exit(1)
 
     # else continued
     if insert is None:
-        ref_pos = sorted_indexes.index(index)
-        insert = sorted_indexes[ref_pos - 1]
-        del sorted_indexes[ref_pos]
+        commit_pos = sorted_indexes.index(index)
+        insert = sorted_indexes[commit_pos - 1]
+        del sorted_indexes[commit_pos]
 
     if sorted(sorted_indexes) != sorted_indexes:
         print("Error: subseries is not sorted.", file=sys.stderr)

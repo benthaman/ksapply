@@ -17,21 +17,21 @@ import lib
 import lib_tag
 
 
-def format_import(references, tmpdir, dstdir, ref, poi=[]):
+def format_import(references, tmpdir, dstdir, rev, poi=[]):
     assert len(poi) == 0 # todo
     args = ("git", "format-patch", "--output-directory", tmpdir, "--notes",
-            "--max-count=1", "--subject-prefix=", "--no-numbered", ref,)
+            "--max-count=1", "--subject-prefix=", "--no-numbered", rev,)
     src = subprocess.check_output(args).strip()
     # remove number prefix
     name = os.path.basename(src)[5:]
     dst = os.path.join(dstdir, name)
     if os.path.exists(os.path.join("patches", dst)):
-        name = "%s-%s.patch" % (name[:-6], ref[:8],)
+        name = "%s-%s.patch" % (name[:-6], rev[:8],)
         dst = os.path.join(dstdir, name)
 
     libdir = os.path.dirname(sys.argv[0])
     subprocess.check_call((os.path.join(libdir, "clean_header.sh"),
-                           "--commit=%s" % ref, "--reference=%s" % references,
+                           "--commit=%s" % rev, "--reference=%s" % references,
                            src,))
     subprocess.check_call(("quilt", "import", "-P", dst, src,))
     # This will remind the user to run refresh_patch.sh
@@ -52,7 +52,7 @@ if __name__ == "__main__":
                         "containing the commit specified in the first "
                         "\"Fixes\" tag in the commit log of the commit to "
                         "import.")
-    parser.add_argument("refspec", help="Upstream commit id to import.")
+    parser.add_argument("rev", help="Upstream commit id to import.")
     parser.add_argument("poi", help="Limit patch to specified paths.",
                         nargs=argparse.REMAINDER)
     args = parser.parse_args()
@@ -74,14 +74,14 @@ if __name__ == "__main__":
         os.environ["GIT_DIR"] = repo_path
     repo = pygit2.Repository(repo_path)
     try:
-        commit = repo.revparse_single(args.refspec)
+        commit = repo.revparse_single(args.rev)
     except ValueError:
-        print("Error: \"%s\" is not a valid ref." % (args.refspec,),
+        print("Error: \"%s\" is not a valid revision." % (args.rev,),
               file=sys.stderr)
         sys.exit(1)
     except KeyError:
-        print("Error: revision \"%s\" not found in \"%s\"." % (
-            args.refspec, repo_path), file=sys.stderr)
+        print("Error: revision \"%s\" not found in \"%s\"." %
+              (args.rev, repo_path), file=sys.stderr)
         sys.exit(1)
 
     if args.followup:

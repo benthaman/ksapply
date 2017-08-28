@@ -18,7 +18,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Check if a commit id is already backported by a patch in "
         "series.conf.")
-    parser.add_argument("refspec", help="Upstream commit id.")
+    parser.add_argument("rev", help="Upstream commit id.")
     args = parser.parse_args()
 
     if not lib.check_series():
@@ -34,13 +34,13 @@ if __name__ == "__main__":
         sys.exit(1)
     repo_path = pygit2.discover_repository(search_path)
     repo = pygit2.Repository(repo_path)
-    ref = str(repo.revparse_single(args.refspec).id)
+    commit = str(repo.revparse_single(args.rev).id)
 
-    f = lib.find_commit_in_series(ref, open("series"))
+    f = lib.find_commit_in_series(commit, open("series"))
     if f is not None:
         # remove "patches/" prefix
         print("Commit %s already present in patch\n\t%s" % (
-            ref[:12], f.name[8:],))
+            commit[:12], f.name[8:],))
         references = " ".join(lib_tag.tag_get(f, "References"))
         if references:
             print("for\n\t%s" % (references,))

@@ -25,7 +25,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Print the name of the patch over which the specified "
         "commit should be imported.")
-    parser.add_argument("refspec", help="Upstream commit id.")
+    parser.add_argument("rev", help="Upstream commit id.")
     args = parser.parse_args()
 
     repo_path = lib.repo_path()
@@ -33,7 +33,7 @@ if __name__ == "__main__":
         # this is for the `git log` call in git_sort.py
         os.environ["GIT_DIR"] = repo_path
     repo = pygit2.Repository(repo_path)
-    ref = str(repo.revparse_single(args.refspec).id)
+    commit = str(repo.revparse_single(args.rev).id)
 
     # tagged[commit] = patch file name of the last patch which implements commit
     tagged = {}
@@ -54,10 +54,10 @@ if __name__ == "__main__":
         last = h
 
     result = None
-    if ref in tagged:
-        result = tagged[ref]
+    if commit in tagged:
+        result = tagged[commit]
     else:
-        tagged[ref] = "# commit"
+        tagged[commit] = "# commit"
         # else case continued after the sort
 
     sorted_patches = [commit for
@@ -65,14 +65,14 @@ if __name__ == "__main__":
 
     # else continued
     if result is None:
-        ref_pos = sorted_patches.index("# commit")
-        if ref_pos > 0:
-            result = sorted_patches[ref_pos - 1]
+        commit_pos = sorted_patches.index("# commit")
+        if commit_pos > 0:
+            result = sorted_patches[commit_pos - 1]
         else:
             # should be inserted first in sub-series, get last patch name before
             # sub-series
             result = series[0][-1]
-        del sorted_patches[ref_pos]
+        del sorted_patches[commit_pos]
 
     if sorted_patches != series[1]:
         print("Error: sub-series is not sorted.", file=sys.stderr)

@@ -132,8 +132,8 @@ qdupcheck () {
 
 
 qdiffcheck () {
-	local ref=$(tag_get git-commit < $(q top) | GIT_DIR="$LINUX_GIT"/.git expand_git_ref)
-	interdiff <(GIT_DIR="$LINUX_GIT"/.git $_libdir/git_helpers/git-f1 $ref) $(q top)
+	local rev=$(tag_get git-commit < $(q top) | GIT_DIR="$LINUX_GIT"/.git expand_git_ref)
+	interdiff <(GIT_DIR="$LINUX_GIT"/.git $_libdir/git_helpers/git-f1 $rev) $(q top)
 }
 
 
@@ -316,7 +316,7 @@ _stablecheck () {
 	local entry=$1
 	local patch=$2
 
-	local refspec=$(echo "$patch" | awk '{
+	local rev=$(echo "$patch" | awk '{
 		match($0, "patch-([[:digit:]]+\\.[[:digit:]]+)\\.([[:digit:]]+)(-([[:digit:]]+))?", a)
 		if (a[3]) {
 			print "v" a[1] "." a[2] "..v" a[1] "." a[4]
@@ -324,7 +324,7 @@ _stablecheck () {
 			print "v" a[1] "..v" a[1] "." a[2]
 		}
 	}')
-	local output=$(GIT_DIR="$LINUX_GIT"/.git git log "$refspec" --pretty=tformat:%H --grep "$entry")
+	local output=$(GIT_DIR="$LINUX_GIT"/.git git log "$rev" --pretty=tformat:%H --grep "$entry")
 	local nb=$(echo "$output" | wc -l)
 	if [ "$output" -a $nb -eq 1 ]; then
 		echo -en "This commit was backported to a stable branch as\n\t"
@@ -332,7 +332,7 @@ _stablecheck () {
 		echo
 	elif [ $nb -gt 1 ]; then
 		echo "Warning: $nb potential stable commits found:" > /dev/stderr
-		GIT_DIR="$LINUX_GIT"/.git git log "$refspec" --oneline --grep "$entry" > /dev/stderr
+		GIT_DIR="$LINUX_GIT"/.git git log "$rev" --oneline --grep "$entry" > /dev/stderr
 	else
 		echo "Warning: no potential stable commit found." > /dev/stderr
 	fi

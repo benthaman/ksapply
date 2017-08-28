@@ -79,10 +79,10 @@ def touch(fname, times=None):
         os.utime(fname, times)
 
 
-def find_commit_in_series(ref, series):
+def find_commit_in_series(commit, series):
     for patch in cat_series(series):
         path = os.path.join("patches", patch)
         f = open(path)
-        if ref in [firstword(v) for v in lib_tag.tag_get(f, "Git-commit")]:
+        if commit in [firstword(v) for v in lib_tag.tag_get(f, "Git-commit")]:
             f.seek(0)
             return f
