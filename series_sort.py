@@ -73,6 +73,10 @@ if __name__ == "__main__":
         try:
             h = lib.firstword(gc_tags[0])
             commit = repo.revparse_single(h)
+        except ValueError:
+            print("Error: Git-commit tag \"%s\" in patch \"%s\" is not a valid ref." %
+                  (h, name,), file=sys.stderr)
+            sys.exit(1)
         except KeyError:
             f.seek(0)
             r_tags = lib_tag.tag_get(f, "Git-repo")

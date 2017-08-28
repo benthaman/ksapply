@@ -76,6 +76,10 @@ if __name__ == "__main__":
     repo = pygit2.Repository(repo_path)
     try:
         commit = repo.revparse_single(args.refspec)
+    except ValueError:
+        print("Error: \"%s\" is not a valid ref." % (args.refspec,),
+              file=sys.stderr)
+        sys.exit(1)
     except KeyError:
         print("Error: revision \"%s\" not found in \"%s\"." % (
             args.refspec, repo_path), file=sys.stderr)
