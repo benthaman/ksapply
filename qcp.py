@@ -21,7 +21,7 @@ def format_import(references, tmpdir, dstdir, ref, poi=[]):
     assert len(poi) == 0 # todo
     args = ("git", "format-patch", "--output-directory", tmpdir, "--notes",
             "--max-count=1", "--subject-prefix=", "--no-numbered", ref,)
-    src = subprocess.check_output(args, preexec_fn=lib.restore_signals).strip()
+    src = subprocess.check_output(args).strip()
     # remove number prefix
     name = os.path.basename(src)[5:]
     dst = os.path.join(dstdir, name)
@@ -32,9 +32,8 @@ def format_import(references, tmpdir, dstdir, ref, poi=[]):
     libdir = os.path.dirname(sys.argv[0])
     subprocess.check_call((os.path.join(libdir, "clean_header.sh"),
                            "--commit=%s" % ref, "--reference=%s" % references,
-                           src,), preexec_fn=lib.restore_signals)
-    subprocess.check_call(("quilt", "import", "-P", dst, src,),
-                          preexec_fn=lib.restore_signals)
+                           src,))
+    subprocess.check_call(("quilt", "import", "-P", dst, src,))
     # This will remind the user to run refresh_patch.sh
     lib.touch(".pc/%s~refresh" % (dst,))
 

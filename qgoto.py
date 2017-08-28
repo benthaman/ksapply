@@ -43,8 +43,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # remove "patches/" prefix
-    top = subprocess.check_output(("quilt", "top",),
-                                  preexec_fn=lib.restore_signals).strip()[8:]
+    top = subprocess.check_output(("quilt", "top",)).strip()[8:]
 
     # tagged[commit] = index
     # index is the number of patches applied in the subseries to get to the
