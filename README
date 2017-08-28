@@ -19,8 +19,11 @@ Install it from
 
 The LINUX_GIT environment variable must be set to the path of a fresh Linux
 kernel git clone; it will be used as a reference for upstream commit
-information. The user.name and user.email git config variables must be
-set to sensible values in that clone; they will be used to tag patches.
+information. Specifically, this must be a clone of
+git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git or one of the
+alternate URLs found on kernel.org. The user.name and user.email git config
+variables must be set to sensible values in that clone; they will be used to
+tag patches.
 
 + Example workflow to backport a single commit
 For example, we want to backport f5a952c08e84 which is a fix for another
