@@ -5,20 +5,17 @@
 When we want to backport a specific commit at its right position in the sorted
 sub-series, it is most efficient to use sequence_patch.sh to expand the tree up
 to the patch just before where the new commit will be added. The current script
-prints out which patch that is. Use in conjunction with sequence-patch.sh.
+prints out which patch that is. Use in conjunction with sequence-patch.sh:
+    kernel-source$ ./scripts/sequence-patch.sh $(~/programming/suse/ksapply/sequence-insert.py 5c8227d0d3b1)
 """
 
 from __future__ import print_function
 
 import argparse
 import os
-import pygit2
 import sys
 
 import lib
-import lib_tag
-
-from git_helpers import git_sort
 
 
 if __name__ == "__main__":
@@ -28,54 +25,11 @@ if __name__ == "__main__":
     parser.add_argument("rev", help="Upstream commit id.")
     args = parser.parse_args()
 
-    repo_path = lib.repo_path()
-    if "GIT_DIR" not in os.environ:
-        # this is for the `git log` call in git_sort.py
-        os.environ["GIT_DIR"] = repo_path
-    repo = pygit2.Repository(repo_path)
-    commit = str(repo.revparse_single(args.rev).id)
-
-    # tagged[commit] = patch file name of the last patch which implements commit
-    tagged = {}
-    last = None
-    series = lib.split_series(open("series.conf"))
-    for patch in series[1]:
-        try:
-            h = lib.firstword(lib_tag.tag_get(open(patch), "Git-commit")[0])
-        except IndexError:
-            print("Error: No Git-commit tag found in %s" % (patch,),
-                  file=sys.stderr)
-            sys.exit(1)
-
-        if h in tagged and last != h:
-            print("Error: sub-series is not sorted.", file=sys.stderr)
-            sys.exit(1)
-        tagged[h] = patch
-        last = h
-
-    result = None
-    if commit in tagged:
-        result = tagged[commit]
-    else:
-        tagged[commit] = "# commit"
-        # else case continued after the sort
-
-    sorted_patches = [commit for
-                      head, commit in git_sort.git_sort(repo, tagged)]
-
-    # else continued
-    if result is None:
-        commit_pos = sorted_patches.index("# commit")
-        if commit_pos > 0:
-            result = sorted_patches[commit_pos - 1]
-        else:
-            # should be inserted first in sub-series, get last patch name before
-            # sub-series
-            result = series[0][-1]
-        del sorted_patches[commit_pos]
-
-    if sorted_patches != series[1]:
-        print("Error: sub-series is not sorted.", file=sys.stderr)
+    try:
+        (name, delta,) = lib.sequence_insert(open("series.conf"), args.rev,
+                                             None)
+    except lib.KSException as err:
+        print("Error: %s" % (err,), file=sys.stderr)
         sys.exit(1)
 
-    print(result)
+    print(name)
