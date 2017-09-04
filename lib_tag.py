@@ -16,4 +16,10 @@ def tag_get(patch, tag):
         # in the quilt sources
         elif line.startswith(("---", "***", "Index:", "diff -",)):
             break
+
+    try:
+        patch.seek(0)
+    except AttributeError:
+        pass
+
     return result

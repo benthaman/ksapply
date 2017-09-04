@@ -5,7 +5,8 @@
 Script to sort series.conf lines according to the upstream order of commits that
 the patches backport.
 
-This script reads series.conf lines from stdin and outputs its result to stdout.
+The script can either read series.conf lines (or a subset thereof) from stdin or
+from the file named in the first argument.
 
 A convenient way to use series_sort.py to filter a subset of lines
 within series.conf when using the vim text editor is to visually
@@ -18,15 +19,13 @@ select the lines and filter them through the script:
 from __future__ import print_function
 
 import argparse
-import collections
 import os
 import pygit2
 import sys
 
 import lib
-import lib_tag
 
-from git_helpers import git_sort
+import pprint
 
 
 if __name__ == "__main__":
@@ -34,7 +33,11 @@ if __name__ == "__main__":
         description="Sort series.conf lines according to the upstream order of "
         "commits that the patches backport.")
     parser.add_argument("-p", "--prefix", metavar="DIR",
-                        help="Search for patches in this directory.")
+                        help="Search for patches in this directory. Default: "
+                        "current directory.")
+    parser.add_argument("series", nargs="?", metavar="series.conf",
+                        help="series.conf file which will be modified in "
+                        "place. Default: read input from stdin.")
     args = parser.parse_args()
 
     repo_path = lib.repo_path()
@@ -43,87 +46,32 @@ if __name__ == "__main__":
         os.environ["GIT_DIR"] = repo_path
     repo = pygit2.Repository(repo_path)
 
-    # out-of-tree
-    oot = []
-    # tagged as "Queued in subsystem maintainer repository" and that commit is
-    # not found in the repository. This is probably because that remote is not
-    # indexed by git-sort.
-    # subsys[repo] = series.conf entry
-    subsys = collections.defaultdict(list)
-    # tagged[commit] = series.conf entry
-    tagged = {}
-    for line in sys.stdin.readlines():
-        name = line.strip()
-        if not name or name.startswith(("#", "-", "+",)):
-            continue
-        name = lib.firstword(name)
-        if args.prefix is not None:
-            name = os.path.join(args.prefix, name)
+    if args.series is not None:
+        args.series = os.path.abspath(args.series)
+        f = open(args.series)
+    else:
+        f = sys.stdin
+    lines = f.readlines()
 
-        if not os.path.exists(name):
-            print("Error: could not find patch \"%s\"" % (name,),
-                  file=sys.stderr)
-            sys.exit(1)
+    if args.prefix is not None:
+        os.chdir(args.prefix)
 
-        f = open(name)
-        gc_tags = lib_tag.tag_get(f, "Git-commit")
-        if not gc_tags:
-            oot.append(line)
-            continue
-        try:
-            h = lib.firstword(gc_tags[0])
-            commit = repo.revparse_single(h)
-        except ValueError:
-            print("Error: Git-commit tag \"%s\" in patch \"%s\" is not a valid revision." %
-                  (h, name,), file=sys.stderr)
-            sys.exit(1)
-        except KeyError:
-            f.seek(0)
-            r_tags = lib_tag.tag_get(f, "Git-repo")
-            if not r_tags:
-                print("Error: commit \"%s\" not found and no Git-repo "
-                      "specified. Either the repository at \"%s\" is outdated "
-                      "or patch \"%s\" is tagged improperly." % (
-                          h, repo_path, name,), file=sys.stderr)
-                sys.exit(1)
-            elif len(r_tags) > 1:
-                print("Error: multiple Git-repo tags found. Patch \"%s\" is "
-                      "tagged improperly." % (name,), file=sys.stderr)
-                sys.exit(1)
-            subsys[r_tags[0]].append(line)
-        else:
-            h = str(commit.id)
-            if h in tagged:
-                tagged[h].append(line)
-            else:
-                tagged[h] = [line]
+    try:
+        before, inside, after = lib.split_series(lines)
+    except lib.KSNotFound:
+        before = []
+        inside = lines
+        after = []
 
-    last_head = None
-    for head, line_list in git_sort.git_sort(repo, tagged):
-        if last_head is None:
-            last_head = head
-        elif head != last_head:
-            print("\n\t# %s" % (head,))
-            last_head = head
+    output = lib.flatten([
+        before,
+        lib.series_header(inside),
+        lib.series_sort(repo, inside),
+        lib.series_footer(inside),
+        after])
 
-        for line in line_list:
-            print(line, end="")
-
-
-    if len(tagged) != 0:
-        # commits that were found in the repository but that are not indexed by
-        # git-sort.
-        print("\n\t# unsorted patches")
-        for line_list in tagged.values():
-            for line in line_list:
-                print(line, end="")
-
-    for r_tag in sorted(subsys):
-        print("\n\t# Queued in %s" % (r_tag,))
-        for line in subsys[r_tag]:
-            print(line, end="")
-
-    if oot:
-        print("\n\t# out-of-tree patches")
-        for line in oot:
-            print(line, end="")
+    if args.series is not None:
+        f = open(args.series, mode="w")
+    else:
+        f = sys.stdout
+    f.writelines(output)
