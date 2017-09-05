@@ -163,11 +163,11 @@ flatten = lambda l: [item for sublist in l for item in sublist]
 
 def sequence_insert(series, rev, top):
     """
-    top is the top applied patch, None if none are applied...
+    top is the top applied patch, None if none are applied.
+
+    Caller must chdir to where the entries in series can be found.
 
     Returns the name of the new top patch and how many must be applied/popped.
-
-    Caller must chdir to where the entries in series can be found
     """
     git_dir = repo_path()
     if "GIT_DIR" not in os.environ:
@@ -182,63 +182,44 @@ def sequence_insert(series, rev, top):
         raise KSError("Revision \"%s\" not found in \"%s\"." % (
             rev, git_dir,))
 
-    # tagged[commit] = patch file name of the last patch which implements commit
-    tagged = {}
-    last = None
-
-    before, inside, after = split_series(series)
-    patches = [firstword(l) for l in flatten([before, inside, after]) if
-               filter_patches(l)]
-    before = [firstword(l) for l in before if filter_patches(l)]
-    inside = filter_sorted(inside)
-    for patch in inside:
-        try:
-            h = firstword(lib_tag.tag_get(open(patch), "Git-commit")[0])
-        except IndexError:
-            raise KSError("No Git-commit tag found in %s." % (patch,))
-
-        if h in tagged and last != h:
-            raise KSError("Subseries is not sorted.")
-        tagged[h] = patch
-        last = h
+    before, inside, after = [
+        [firstword(line) for line in lines if filter_patches(line)]
+        for lines in split_series(series)]
+    current_patches = flatten([before, inside, after])
 
     if top is None:
         top_index = 0
     else:
-        top_index = patches.index(top) + 1
+        top_index = current_patches.index(top) + 1
 
-    name = None
-    if commit in tagged:
-        # calling git_sort in this case may not be mandatory but will be done to
-        # validate the current series
-        name = tagged[commit]
+    input_entries = []
+    for patch in inside:
+        entry = InputEntry(patch)
+        entry.from_patch(repo, patch)
+        input_entries.append(entry)
+    entry = InputEntry("# new commit")
+    entry.commit = commit
+    input_entries.append(entry)
+
+    sorted_entries = series_sort(repo, input_entries)
+    sorted_patches = flatten([
+        before,
+        [patch
+         for head_name, patches in sorted_entries
+         for patch in patches],
+        after])
+    commit_pos = sorted_patches.index("# new commit")
+    if commit_pos == 0:
+        # should be inserted first in series
+        name = ""
     else:
-        tagged[commit] = "# new commit"
-        # else case continued after the sort
+        name = sorted_patches[commit_pos - 1]
+    del sorted_patches[commit_pos]
 
-    sorted_patches = [patch for
-                      head, patch in git_sort.git_sort(repo, tagged)]
-
-    if commit in tagged.keys():
-        raise KSError(
-            "Requested revision \"%s\" could not be sorted. Please make sure "
-            "it is part of the commits indexed by git-sort." % (rev,))
-
-    # else continued
-    if name is None:
-        commit_pos = sorted_patches.index("# new commit")
-        if commit_pos == 0:
-            # should be inserted first in subseries, get last patch name before
-            # subseries
-            name = before[-1]
-        else:
-            name = sorted_patches[commit_pos - 1]
-        del sorted_patches[commit_pos]
-
-    if sorted_patches != inside:
+    if sorted_patches != current_patches:
         raise KSError("Subseries is not sorted.")
 
-    return (name, patches.index(name) + 1 - top_index,)
+    return (name, commit_pos - top_index,)
 
 
 class InputEntry(object):
