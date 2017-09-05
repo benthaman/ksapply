@@ -73,12 +73,17 @@ if __name__ == "__main__":
         print("Warning: %d commits removed in remote but not present in local, "
               "ignoring." % (dup_rem_nb,))
 
+    input_entries = []
+    for patch in local[3] - removed | added:
+        entry = lib.InputEntry("\t%s\n" % (patch,))
+        entry.from_patch(repo, patch)
+        input_entries.append(entry)
     try:
-        output = lib.series_sort(repo, ["\t%s\n" % (patch,) for patch in
-                                        local[3] - removed | added])
+        sorted_entries = lib.series_sort(repo, input_entries)
     except lib.KSException as err:
         print("Error: %s" % (err,), file=sys.stderr)
         sys.exit(1)
+    output = lib.series_format(sorted_entries)
 
     # If there were no conflicts outside of the sorted section, then it would be
     # sufficient to splice the sorted result into local

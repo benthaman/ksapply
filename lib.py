@@ -241,35 +241,26 @@ def sequence_insert(series, rev, top):
     return (name, patches.index(name) + 1 - top_index,)
 
 
-def series_sort(repo, series):
-    """
-    series is the sorted subsection only
-    """
-    result = []
-    # out-of-tree
-    oot = []
-    # tagged as "Queued in subsystem maintainer repository" and that commit is
-    # not found in the repository. This is probably because that remote is not
-    # indexed by git-sort.
-    # subsys[repo][] = series.conf entry
-    subsys = collections.defaultdict(list)
-    # tagged[commit][] = series.conf entry
-    tagged = collections.defaultdict(list)
-    for line in [l for l in series if filter_patches(l)]:
-        patch = firstword(line)
-        if not patch:
-            continue
+class InputEntry(object):
+    def __init__(self, value):
+        self.commit = None
+        self.subsys = None
+        self.oot = False
 
+        self.value = value
+
+    def from_patch(self, repo, patch):
         if not os.path.exists(patch):
             raise KSError("Could not find patch \"%s\"" % (patch,))
 
         f = open(patch)
         commit_tags = lib_tag.tag_get(f, "Git-commit")
         if not commit_tags:
-            oot.append(line)
-            continue
+            self.oot = True
+            return
+
+        rev = firstword(commit_tags[0])
         try:
-            rev = firstword(commit_tags[0])
             commit = repo.revparse_single(rev)
         except ValueError:
             raise KSError("Git-commit tag \"%s\" in patch \"%s\" is not a valid revision." %
@@ -280,38 +271,67 @@ def series_sort(repo, series):
                 raise KSError(
                     "Commit \"%s\" not found and no Git-repo specified. "
                     "Either the repository at \"%s\" is outdated or patch \"%s\" is tagged improperly." % (
-                        rev, repo_path, patch,))
+                        rev, repo.path, patch,))
             elif len(repo_tags) > 1:
                 raise KSError("Multiple Git-repo tags found."
                                   "Patch \"%s\" is tagged improperly." %
                                   (patch,))
-            subsys[repo_tags[0]].append(line)
+            self.subsys = repo_tags[0]
         else:
-            commit = str(commit.id)
-            tagged[commit].append(line)
+            self.commit = str(commit.id)
 
+
+def series_sort(repo, entries):
+    """
+    entries is a list of InputEntry objects
+
+    Returns a list of
+        (head name, [series.conf line with a patch name],)
+
+    head name may be a "virtual head" like "out-of-tree patches".
+    """
+    tagged = collections.defaultdict(list)
+    for input_entry in entries:
+        if input_entry.commit:
+            tagged[input_entry.commit].append(input_entry.value)
+
+    result = []
     last_head = None
-    for head, line_list in git_sort.git_sort(repo, tagged):
-        if last_head is None:
-            last_head = head
-        elif head != last_head:
-            result.extend(["\n", "\t# %s\n" % (head,)])
-            last_head = head
+    for sorted_entry in git_sort.git_sort(repo, tagged):
+        if sorted_entry.head_name != last_head:
+            if last_head:
+                result.append((last_head, group,))
+            group = []
+            last_head = sorted_entry.head_name
+        group.extend(sorted_entry.value)
+    result.append((last_head, group,))
 
-        result.extend(line_list)
+    if tagged:
+        result.append(("unknown/local patches", [
+            value for value_list in tagged.values() for value in value_list],))
 
-    if len(tagged) != 0:
-        # commits that were found in the repository but that are not indexed by
-        # git-sort.
-        result.extend(["\n", "\t# unsorted patches\n"])
-        result.extend(lib.flatten(tagged.values()))
+    subsys = collections.defaultdict(list)
+    for e in entries:
+        if e.subsys:
+            subsys[e.subsys].append(e.value)
+    result.extend([("Queued in %s" % (r_tag,), subsys[r_tag],)
+                   for r_tag in sorted(subsys)])
 
-    for r_tag in sorted(subsys):
-        result.extend(["\n", "\t# Queued in %s\n" % (r_tag,)])
-        result.extend(subsys[r_tag])
+    result.append(("out-of-tree patches", [e.value for e in entries if e.oot],))
 
-    if oot:
-        result.extend(["\n", "\t# out-of-tree patches\n"])
-        result.extend(oot)
+    return result
+
+
+def series_format(entries):
+    """
+    entries is a list of
+        (group name, [series.conf line with a patch name],)
+    """
+    result = []
+
+    for head_name, lines in entries:
+        if head_name != git_sort.head_names[0][0]:
+            result.extend(["\n", "\t# %s\n" % (head_name,)])
+        result.extend(lines)
 
     return result

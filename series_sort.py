@@ -25,8 +25,6 @@ import sys
 
 import lib
 
-import pprint
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -63,10 +61,22 @@ if __name__ == "__main__":
         inside = lines
         after = []
 
+    input_entries = []
+    for patch in [lib.firstword(line) for line in inside if
+                  lib.filter_patches(line)]:
+        entry = lib.InputEntry("\t%s\n" % (patch,))
+        entry.from_patch(repo, patch)
+        input_entries.append(entry)
+    try:
+        sorted_entries = lib.series_sort(repo, input_entries)
+    except lib.KSException as err:
+        print("Error: %s" % (err,), file=sys.stderr)
+        sys.exit(1)
+
     output = lib.flatten([
         before,
         lib.series_header(inside),
-        lib.series_sort(repo, inside),
+        lib.series_format(sorted_entries),
         lib.series_footer(inside),
         after])
 
