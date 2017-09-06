@@ -46,7 +46,7 @@ if __name__ == "__main__":
             print("for\n\t%s" % (references,))
 
         top = subprocess.check_output(
-            ("quilt", "top",)).strip()
+            ("quilt", "top",), preexec_fn=lib.restore_signals).strip()
         if top == f.name:
             print("This is the top patch.")
         sys.exit(1)

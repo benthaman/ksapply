@@ -32,8 +32,9 @@ def format_import(references, tmpdir, dstdir, rev, poi=[]):
     libdir = os.path.dirname(sys.argv[0])
     subprocess.check_call((os.path.join(libdir, "clean_header.sh"),
                            "--commit=%s" % rev, "--reference=%s" % references,
-                           src,))
-    subprocess.check_call(("quilt", "import", "-P", dst, src,))
+                           src,), preexec_fn=lib.restore_signals)
+    subprocess.check_call(("quilt", "import", "-P", dst, src,),
+                          preexec_fn=lib.restore_signals)
     # This will remind the user to run refresh_patch.sh
     lib.touch(".pc/%s~refresh" % (dst,))
 

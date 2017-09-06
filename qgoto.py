@@ -22,7 +22,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # remove "patches/" prefix
-    top = subprocess.check_output(("quilt", "top",)).strip()[8:]
+    top = subprocess.check_output(("quilt", "top",),
+                                  preexec_fn=lib.restore_signals).strip()[8:]
 
     series = open("series")
     os.chdir("patches")
