@@ -65,7 +65,11 @@ if __name__ == "__main__":
     for patch in [lib.firstword(line) for line in inside if
                   lib.filter_patches(line)]:
         entry = lib.InputEntry("\t%s\n" % (patch,))
-        entry.from_patch(repo, patch)
+        try:
+            entry.from_patch(repo, patch)
+        except lib.KSError as err:
+            print("Error: %s" % (err,), file=sys.stderr)
+            sys.exit(1)
         input_entries.append(entry)
     try:
         sorted_entries = lib.series_sort(repo, input_entries)
