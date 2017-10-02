@@ -21,9 +21,23 @@ The LINUX_GIT environment variable must be set to the path of a fresh Linux
 kernel git clone; it will be used as a reference for upstream commit
 information. Specifically, this must be a clone of
 git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git or one of the
-alternate URLs found on kernel.org. The user.name and user.email git config
-variables must be set to sensible values in that clone; they will be used to
-tag patches.
+alternate URLs found on kernel.org. The `user.name` and `user.email` git
+config variables must be set to sensible values in that clone; they will be
+used to tag patches.
+
+If you want to import patches that are not yet in mainline but that are in a
+subsystem maintainer's tree, this repository must be configured as an
+additional remote of the local repository cloned under LINUX_GIT. For example:
+```
+linux$ git remote show
+net # git://git.kernel.org/pub/scm/linux/kernel/git/davem/net.git
+net-next # git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git
+origin # git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+stable # git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
+```
+
+Please note that linux-next is not a subsystem maintainer tree. If a commit is
+in linux-next, it comes from some other tree.
 
 Example workflow to backport a single commit
 ============================================
@@ -194,11 +208,18 @@ using whatever means you prefer, add a new line for this patch anywhere in the
 "sorted patches" section of series.conf and perform a sort of the entire
 section (from the start of "sorted patches" to the end of "out-of-tree
 patches") which will reposition the new entry. This last step is done using
-the "series_sort.py" script. Please see the header of that file for usage
-instructions.
+the "series_sort.py" script:
+```
+kernel-source$ ~/programming/suse/ksapply/series_sort.py series.conf
+```
 
 Example workflow to backport a series of commits using kernel.git
 =================================================================
+The following instructions detail an older approach, before series.conf was
+sorted. The instructions may still be relevant to die hard users of
+kernel.git but the resulting series.conf will need to be reordered, which may
+create some context conflicts.
+
 Obtain a patch set
 ------------------
 ### Option 1) Patch files from an external source
