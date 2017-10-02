@@ -71,8 +71,7 @@ def split_series(series):
                 whitespace = []
             comments.append(line)
 
-            if current == before and l in ("# sorted patches",
-                                           "# Sorted Network Patches",):
+            if current == before and l.lower() == "# sorted patches":
                 current = inside
             elif current == inside and l in ("# Wireless Networking",):
                 current = after
