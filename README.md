@@ -16,7 +16,6 @@ copy.
 Install it from  
 https://gitlab.suse.de/benjamin_poirier/quilt
 
-
 The LINUX_GIT environment variable must be set to the path of a fresh Linux
 kernel git clone; it will be used as a reference for upstream commit
 information. Specifically, this must be a clone of
@@ -26,7 +25,7 @@ config variables must be set to sensible values in that clone; they will be
 used to tag patches.
 
 If you want to import patches that are not yet in mainline but that are in a
-subsystem maintainer's tree, this repository must be configured as an
+subsystem maintainer's tree, that repository must be configured as an
 additional remote of the local repository cloned under LINUX_GIT. For example:
 ```
 linux$ git remote show
@@ -211,6 +210,69 @@ patches") which will reposition the new entry. This last step is done using
 the "series_sort.py" script:
 ```
 kernel-source$ ~/programming/suse/ksapply/series_sort.py series.conf
+```
+
+Example of a merge conflict resolution involving sorted patches in series.conf
+==============================================================================
+When merging or rebasing between commits in kernel-source it is possible that
+there is a conflict involving sorted patches in series.conf. This type of
+conflict can be solved automatically using the git mergetool interface with
+the script merge_tool.py. Please see the header of that file for installation
+instructions.
+
+As an example, the merge in kernel-source commit da87d04b3b needed conflict
+resolution. Let's redo this resolution using merge_tool:
+```
+ben@f1:~/local/src/kernel-source$ git log -n1 da87d04b3b
+commit da87d04b3bc6edf2b58a10e27c77352a5eb7b3d9
+Merge: e2d6a02d9c 1244565fb9
+Author: Jiri Kosina <jkosina@suse.cz>
+Date:   Wed Sep 13 18:48:33 2017 +0200
+
+    Merge remote-tracking branch 'origin/users/dchang/SLE15/for-next' into SLE15
+
+    Conflicts:
+            series.conf
+ben@f1:~/local/src/kernel-source$ git co e2d6a02d9c
+HEAD is now at e2d6a02d9c... Merge remote-tracking branch 'origin/users/bpoirier/SLE15/for-next' into SLE15
+ben@f1:~/local/src/kernel-source$ git merge 1244565fb9
+Auto-merging series.conf
+CONFLICT (content): Merge conflict in series.conf
+Recorded preimage for 'series.conf'
+Automatic merge failed; fix conflicts and then commit the result.
+ben@f1:~/local/src/kernel-source$ git mergetool --tool=git-sort series.conf
+Merging:
+series.conf
+
+Normal merge conflict for 'series.conf':
+  {local}: modified file
+  {remote}: modified file
+10 commits added, 0 commits removed from base to remote.
+ben@f1:~/local/src/kernel-source$ git st
+HEAD detached at e2d6a02d9c
+All conflicts fixed but you are still merging.
+  (use "git commit" to conclude merge)
+
+Changes to be committed:
+
+        new file:   patches.drivers/be2net-Fix-UE-detection-logic-for-BE3.patch
+        new file:   patches.drivers/be2net-Update-the-driver-version-to-11.4.0.0.patch
+        new file:   patches.drivers/bnx2x-Remove-open-coded-carrier-check.patch
+        new file:   patches.drivers/bnx2x-fix-format-overflow-warning.patch
+        new file:   patches.drivers/net-broadcom-bnx2x-make-a-couple-of-const-arrays-sta.patch
+        new file:   patches.drivers/net-phy-Make-phy_ethtool_ksettings_get-return-void.patch
+        new file:   patches.drivers/netxen-fix-incorrect-loop-counter-decrement.patch
+        new file:   patches.drivers/netxen-remove-writeq-readq-function-definitions.patch
+        new file:   patches.drivers/netxen_nic-Remove-unused-pointer-hdr-in-netxen_setup.patch
+        new file:   patches.drivers/qlge-avoid-memcpy-buffer-overflow.patch
+        modified:   series.conf
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+
+        series.conf.orig
+
+ben@f1:~/local/src/kernel-source$ git commit
 ```
 
 Example workflow to backport a series of commits using kernel.git
