@@ -49,12 +49,14 @@ if __name__ == "__main__":
         os.environ["GIT_DIR"] = repo_path
     repo = pygit2.Repository(repo_path)
 
-    tmp = [lib.split_series(open(s_path))
-                           for s_path in (local_path, base_path, remote_path,)]
-
-    local, base, remote = ((s[0], s[1], s[2], OrderedSet([lib.firstword(l) for l in s[1] if
-                                               lib.filter_patches(l)]),)
-                           for s in tmp)
+    local, base, remote = (
+        (s[0], s[1], s[2], OrderedSet([lib.firstword(l) for l in s[1] if
+                                       lib.filter_patches(l)]),)
+        for s in [
+            lib.split_series(open(s_path)) for s_path in (
+                local_path, base_path, remote_path,)
+        ]
+    )
 
     added = remote[3] - base[3]
     removed = base[3] - remote[3]
