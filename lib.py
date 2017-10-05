@@ -283,30 +283,44 @@ def series_sort(repo, entries):
         if input_entry.commit:
             tagged[input_entry.commit].append(input_entry.value)
 
-    result = []
-    last_head = None
+    subsys = collections.defaultdict(list)
     for sorted_entry in git_sort.git_sort(repo, tagged):
-        if sorted_entry.head_name != last_head:
-            if last_head:
-                result.append((last_head, group,))
-            group = []
-            last_head = sorted_entry.head_name
-        group.extend(sorted_entry.value)
-    result.append((last_head, group,))
+        subsys[sorted_entry.head_name].extend(sorted_entry.value)
+
+    url_map = get_url_map()
+    for e in entries:
+        if e.subsys:
+            try:
+                name = url_map[e.subsys]
+            except KeyError:
+                name = "Queued in %s" % (e.subsys,)
+            subsys[name].append(e.value)
+
+    result = []
+    for head_name, branch_name, urls in git_sort.head_names:
+        if head_name in subsys:
+            result.append((head_name, subsys[head_name],))
+            del subsys[head_name]
 
     if tagged:
         result.append(("unknown/local patches", [
             value for value_list in tagged.values() for value in value_list],))
 
-    subsys = collections.defaultdict(list)
-    for e in entries:
-        if e.subsys:
-            subsys[e.subsys].append(e.value)
-    result.extend([("Queued in %s" % (r_tag,), subsys[r_tag],)
-                   for r_tag in sorted(subsys)])
+    result.extend([(r_tag, subsys[r_tag],) for r_tag in sorted(subsys)])
 
     result.append(("out-of-tree patches", [e.value for e in entries if e.oot],))
 
+    return result
+
+
+def get_url_map():
+    result = {}
+    for head_name, branch_name, urls in git_sort.head_names:
+        for url in urls:
+            if url in result:
+                raise KSException("URL mapping is ambiguous, \"%s\" may map to "
+                                  "multiple head names")
+            result[url] = head_name
     return result
 
 
