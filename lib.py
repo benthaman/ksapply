@@ -204,11 +204,26 @@ def sequence_insert(series, rev, top):
         entry = InputEntry(patch)
         entry.from_patch(repo, patch)
         input_entries.append(entry)
-    entry = InputEntry("# new commit")
+
+    marker = "# new commit"
+    entry = InputEntry(marker)
     entry.commit = commit
     input_entries.append(entry)
 
     sorted_entries = series_sort(repo, input_entries)
+    for head_name, patches in sorted_entries:
+        if head_name == "unknown/local patches":
+            if patches[0] == marker:
+                msg = "New commit %s" % commit
+            else:
+                f = open(patches[0])
+                commit_tags = lib_tag.tag_get(f, "Git-commit")
+                rev = firstword(commit_tags[0])
+                msg = "Commit %s first found in patch \"%s\"" % (rev,
+                    patches[0],)
+            raise KSError(msg + " appears to be from a repository which is "
+                          "not indexed. Please edit head_names in git_sort.py "
+                          "and submit a patch.")
     sorted_patches = flatten([
         before,
         [patch
