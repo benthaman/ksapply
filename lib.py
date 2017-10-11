@@ -308,7 +308,15 @@ def series_sort(repo, entries):
             try:
                 name = url_map[e.subsys]
             except KeyError:
-                name = "Queued in %s" % (e.subsys,)
+                patch = firstword(e.value)
+                f = open(patch)
+                commit_tags = lib_tag.tag_get(f, "Git-commit")
+                rev = firstword(commit_tags[0])
+                raise KSError(
+                    "Commit %s first found in patch \"%s\" appears to be from "
+                    "a repository which is not indexed. Please edit "
+                    "head_names in git_sort.py and submit a patch." % (
+                        rev, patch,))
             subsys[name].append(e.value)
 
     result = []
