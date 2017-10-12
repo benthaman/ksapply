@@ -222,7 +222,7 @@ def sequence_insert(series, rev, top):
                 msg = "Commit %s first found in patch \"%s\"" % (rev,
                     patches[0],)
             raise KSError(msg + " appears to be from a repository which is "
-                          "not indexed. Please edit head_names in git_sort.py "
+                          "not indexed. Please edit \"remotes\" in git_sort.py "
                           "and submit a patch.")
     sorted_patches = flatten([
         before,
@@ -315,12 +315,13 @@ def series_sort(repo, entries):
                 raise KSError(
                     "Commit %s first found in patch \"%s\" appears to be from "
                     "a repository which is not indexed. Please edit "
-                    "head_names in git_sort.py and submit a patch." % (
+                    "\"remotes\" in git_sort.py and submit a patch." % (
                         rev, patch,))
             subsys[name].append(e.value)
 
     result = []
-    for head_name, branch_name, urls in git_sort.head_names:
+    for remote in git_sort.remotes:
+        head_name = git_sort.head_name(*remote)
         if head_name in subsys:
             result.append((head_name, subsys[head_name],))
             del subsys[head_name]
@@ -338,12 +339,11 @@ def series_sort(repo, entries):
 
 def get_url_map():
     result = {}
-    for head_name, branch_name, urls in git_sort.head_names:
-        for url in urls:
-            if url in result:
-                raise KSException("URL mapping is ambiguous, \"%s\" may map to "
-                                  "multiple head names")
-            result[url] = head_name
+    for canon_url, branch_name in git_sort.remotes:
+        if canon_url in result:
+            raise KSException("URL mapping is ambiguous, \"%s\" may map to "
+                              "multiple head names")
+        result[canon_url] = git_sort.head_name(canon_url, branch_name)
     return result
 
 
@@ -355,7 +355,7 @@ def series_format(entries):
     result = []
 
     for head_name, lines in entries:
-        if head_name != git_sort.head_names[0][0]:
+        if head_name != git_sort.head_name(*git_sort.remotes[0]):
             result.extend(["\n", "\t# %s\n" % (head_name,)])
         result.extend(lines)
 
